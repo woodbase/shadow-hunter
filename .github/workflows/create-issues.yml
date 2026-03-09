@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - copilot/create-github-issues-and-milestones
+      - main
     paths:
       - '.github/workflows/create-issues.yml'
       - 'docs/project-plan/PROJECT_PLAN.md'
@@ -57,12 +57,25 @@ jobs:
               return data.number;
             }
 
+            // ── Pre-fetch all existing issue titles (paginated) ──────────────
+            async function fetchExistingIssueTitles() {
+              const titles = new Set();
+              let page = 1;
+              while (true) {
+                const { data } = await github.rest.issues.listForRepo({
+                  owner, repo, state: 'all', per_page: 100, page
+                });
+                if (data.length === 0) break;
+                data.forEach(i => titles.add(i.title));
+                if (data.length < 100) break;
+                page++;
+              }
+              return titles;
+            }
+
             // ── Helper: create an issue (skip if title already exists) ───────
-            async function createIssue(title, body, labelNames, milestoneNumber) {
-              const { data: existing } = await github.rest.issues.listForRepo({
-                owner, repo, state: 'all', per_page: 100
-              });
-              if (existing.find(i => i.title === title)) {
+            async function createIssue(existingTitles, title, body, labelNames, milestoneNumber) {
+              if (existingTitles.has(title)) {
                 console.log(`Issue already exists: ${title}`);
                 return;
               }
@@ -74,6 +87,7 @@ jobs:
                 labels: labelNames,
                 milestone: milestoneNumber,
               });
+              existingTitles.add(title);
               console.log(`Created issue: ${title}`);
             }
 
@@ -179,8 +193,10 @@ jobs:
               },
             ];
 
+            const existingTitles = await fetchExistingIssueTitles();
+
             for (const issue of issues) {
-              await createIssue(issue.title, issue.body, issue.labels, issue.milestone);
+              await createIssue(existingTitles, issue.title, issue.body, issue.labels, issue.milestone);
             }
 
             console.log('Done! All labels, milestones, and issues have been created.');
