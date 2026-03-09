@@ -4,6 +4,10 @@
 ## Enemies are given the target reference automatically.
 ## Connect to [signal wave_started], [signal wave_completed], and [signal all_waves_completed]
 ## to drive level progression and UI feedback.
+##
+## Difficulty scaling: set [member health_scale_per_wave], [member speed_scale_per_wave],
+## [member damage_scale_per_wave], and [member count_scale_per_wave] to grow enemy
+## strength progressively. All multipliers compound as [code]1.0 + wave_index * scale[/code].
 class_name WaveSpawner
 extends Node
 
@@ -26,6 +30,20 @@ signal enemy_killed
 @export var wave_data_list: Array[WaveData] = []
 @export var min_spawn_distance_from_player: float = 220.0
 @export var spawn_retry_count: int = 8
+
+## Fraction by which enemy max-health grows per wave (e.g. 0.15 = +15 % per wave).
+## Multiplier is [code]1.0 + wave_index * health_scale_per_wave[/code].
+@export var health_scale_per_wave: float = 0.15
+## Fraction by which enemy move speed grows per wave (e.g. 0.10 = +10 % per wave).
+## Multiplier is [code]1.0 + wave_index * speed_scale_per_wave[/code].
+@export var speed_scale_per_wave: float = 0.10
+## Fraction by which enemy attack damage grows per wave (e.g. 0.10 = +10 % per wave).
+## Multiplier is [code]1.0 + wave_index * damage_scale_per_wave[/code].
+@export var damage_scale_per_wave: float = 0.10
+## Fraction by which procedural enemy count grows per wave (e.g. 0.20 = +20 % per wave).
+## Has no effect when [member wave_data_list] is set.
+## Multiplier is [code]1.0 + wave_index * count_scale_per_wave[/code].
+@export var count_scale_per_wave: float = 0.20
 
 ## Set by the owning level. Also accepted via [method start].
 var spawn_points: Array[Node2D] = []
@@ -119,6 +137,10 @@ func _spawn_single_enemy() -> void:
 		return
 
 	enemy.global_position = point.global_position
+	# Apply wave-based difficulty scaling. move_speed and damage are guaranteed
+	# @export properties of EnemyBase (null was already rejected above).
+	enemy.move_speed *= _get_difficulty_multiplier(speed_scale_per_wave, _current_wave)
+	enemy.damage *= _get_difficulty_multiplier(damage_scale_per_wave, _current_wave)
 	var active_players: Array[Node2D] = _get_active_players()
 	if not active_players.is_empty():
 		enemy.set_target(active_players[randi() % active_players.size()])
@@ -130,7 +152,7 @@ func _spawn_single_enemy() -> void:
 	# add_child() triggers _ready() on the enemy, so HealthComponent is initialized here.
 	var health: HealthComponent = enemy.get_node_or_null("HealthComponent") as HealthComponent
 	if health != null:
-		var hp_multiplier: float = CoopManager.get_enemy_health_multiplier()
+		var hp_multiplier: float = CoopManager.get_enemy_health_multiplier() * _get_difficulty_multiplier(health_scale_per_wave, _current_wave)
 		if not is_equal_approx(hp_multiplier, 1.0):
 			health.max_health *= hp_multiplier
 			health.current_health = health.max_health
@@ -180,7 +202,7 @@ func _get_wave_enemy_count(index: int) -> int:
 	elif not wave_data_list.is_empty():
 		push_warning("WaveSpawner: missing WaveData for index %d; defaulting enemy_count=0." % index)
 	else:
-		base_count = enemies_per_wave
+		base_count = roundi(enemies_per_wave * _get_difficulty_multiplier(count_scale_per_wave, index))
 	return roundi(base_count * CoopManager.get_enemy_count_multiplier())
 
 
@@ -247,3 +269,10 @@ func _is_far_from_all_players(pos: Vector2, active_players: Array[Node2D]) -> bo
 		if pos.distance_to(p.global_position) < min_spawn_distance_from_player:
 			return false
 	return true
+
+
+## Returns a difficulty multiplier for a given [param scale_per_wave] and [param wave_index].
+## The multiplier is [code]1.0 + wave_index * scale_per_wave[/code], so the first wave always
+## returns 1.0 regardless of scale.
+func _get_difficulty_multiplier(scale_per_wave: float, wave_index: int) -> float:
+	return 1.0 + wave_index * scale_per_wave
