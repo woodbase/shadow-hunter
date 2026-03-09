@@ -7,8 +7,6 @@ on:
       - main
     paths:
       - '.github/workflows/create-issues.yml'
-      - 'docs/project-plan/PROJECT_PLAN.md'
-      - 'docs/project-plan/LABEL_SCHEMA.md'
 
 jobs:
   create-issues:
@@ -29,11 +27,16 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            // ── Helper: create or get a label ────────────────────────────────
+            // ── Helper: create or update a label ─────────────────────────────
             async function ensureLabel(name, color, description) {
               try {
-                await github.rest.issues.getLabel({ owner, repo, name });
-                console.log(`Label already exists: ${name}`);
+                const { data: existing } = await github.rest.issues.getLabel({ owner, repo, name });
+                if (existing.color !== color || existing.description !== description) {
+                  await github.rest.issues.updateLabel({ owner, repo, name, color, description });
+                  console.log(`Updated label: ${name}`);
+                } else {
+                  console.log(`Label unchanged: ${name}`);
+                }
               } catch (e) {
                 if (e.status === 404) {
                   await github.rest.issues.createLabel({ owner, repo, name, color, description });
@@ -44,9 +47,11 @@ jobs:
               }
             }
 
-            // ── Helper: create or get a milestone ────────────────────────────
+            // ── Helper: create or get a milestone (paginated) ────────────────
             async function ensureMilestone(title, description) {
-              const { data: milestones } = await github.rest.issues.listMilestones({ owner, repo, state: 'all' });
+              const milestones = await github.paginate(github.rest.issues.listMilestones, {
+                owner, repo, state: 'all', per_page: 100
+              });
               const existing = milestones.find(m => m.title === title);
               if (existing) {
                 console.log(`Milestone already exists: ${title} (#${existing.number})`);
@@ -66,7 +71,12 @@ jobs:
                   owner, repo, state: 'all', per_page: 100, page
                 });
                 if (data.length === 0) break;
-                data.forEach(i => titles.add(i.title));
+                data.forEach(i => {
+                  // listForRepo returns both issues and PRs; only track issue titles
+                  if (!i.pull_request) {
+                    titles.add(i.title);
+                  }
+                });
                 if (data.length < 100) break;
                 page++;
               }
@@ -92,7 +102,7 @@ jobs:
             }
 
             // ════════════════════════════════════════════════════════════════
-            // 1. LABELS  (from docs/project-plan/LABEL_SCHEMA.md)
+            // 1. LABELS  (hardcoded from docs/project-plan/LABEL_SCHEMA.md)
             // ════════════════════════════════════════════════════════════════
             const systemLabels = [
               { name: 'system:player',      color: '0075ca', description: 'Player systems' },
@@ -128,14 +138,14 @@ jobs:
             }
 
             // ════════════════════════════════════════════════════════════════
-            // 2. MILESTONES  (from docs/project-plan/PROJECT_PLAN.md)
+            // 2. MILESTONES  (hardcoded from docs/project-plan/PROJECT_PLAN.md)
             // ════════════════════════════════════════════════════════════════
-            const prototypeMs      = await ensureMilestone('Prototype',      'Playable gameplay loop');
-            const verticalSliceMs  = await ensureMilestone('Vertical Slice', 'Polished single level');
-            const demoMs           = await ensureMilestone('Demo',           'Content-complete demo');
+            const prototypeMs = await ensureMilestone('Prototype',      'Playable gameplay loop');
+            await ensureMilestone('Vertical Slice', 'Polished single level');
+            await ensureMilestone('Demo',           'Content-complete demo');
 
             // ════════════════════════════════════════════════════════════════
-            // 3. ISSUES  (from docs/project-plan/PROJECT_PLAN.md)
+            // 3. ISSUES  (hardcoded from docs/project-plan/PROJECT_PLAN.md)
             // ════════════════════════════════════════════════════════════════
             const issues = [
               // ── Player Systems ─────────────────────────────────────────────
