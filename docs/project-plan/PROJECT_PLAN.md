@@ -70,27 +70,27 @@ Sprint: 1
 Story Points: 3
 
 Description:
-Implement basic FPS movement system.
+Implement top-down movement system for a 2D action shooter.
 
 Acceptance Criteria:
-- WASD movement
+- WASD movement in all four directions
 - Physics based
-- Smooth movement
+- Smooth movement relative to top-down camera
 
 ---
 
-### Mouse Look
+### Mouse Aim/Rotate
 Labels: system:player
 Milestone: Prototype
 Sprint: 1
 Story Points: 2
 
 Description:
-Implement mouse camera rotation.
+Implement mouse aiming and player rotation for top-down perspective.
 
 Acceptance Criteria:
-- Horizontal rotation
-- Vertical rotation
+- Player rotates to face mouse cursor
+- Aiming direction updates in real time
 - Adjustable sensitivity
 
 ---
@@ -110,6 +110,25 @@ Acceptance Criteria:
 - Mouse click fires weapon
 - Fire rate limit
 - Basic muzzle flash
+
+---
+
+## Light
+
+### Light System
+Labels: system:player
+Milestone: Prototype
+Sprint: 1
+Story Points: 3
+
+Description:
+Implement the core light radius visibility system. The player's lantern emits a circular light that reveals enemies hidden in darkness, forming the central gameplay mechanic.
+
+Acceptance Criteria:
+- Player lantern emits a circular light radius
+- Enemies outside the light radius are hidden in darkness
+- Enemies entering the light radius become visible to the player
+- Light radius size is configurable
 
 ---
 
