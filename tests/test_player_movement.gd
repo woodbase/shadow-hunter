@@ -18,9 +18,14 @@ const PHYSICS_DELTA := 0.016
 ## Tolerance used for floating-point speed comparisons.
 const SPEED_EPSILON := 0.01
 
+## Shared PlayerController instance used to read exported default values.
+var _pc: PlayerController
+
 
 func _ready() -> void:
+	_pc = PlayerController.new()
 	_run_all()
+	_pc.free()
 	print("PlayerController movement tests: %d passed, %d failed." % [_passed, _failed])
 
 
@@ -106,8 +111,10 @@ func test_zero_input_does_not_change_direction() -> void:
 func test_acceleration_increases_velocity_toward_max_speed() -> void:
 	# Starting from rest, a single physics tick with upward input should
 	# increase the velocity magnitude toward move_speed (but not exceed it).
-	var move_speed := 300.0
-	var acceleration := 1500.0
+	# move_speed and acceleration are read from the shared PlayerController
+	# instance so the test stays aligned with the controller's tuning values.
+	var move_speed := _pc.move_speed
+	var acceleration := _pc.acceleration
 	var input_dir := Vector2(0.0, -1.0)  # W pressed
 	var velocity := Vector2.ZERO
 	velocity = velocity.move_toward(input_dir * move_speed, acceleration * PHYSICS_DELTA)
@@ -121,20 +128,20 @@ func test_acceleration_increases_velocity_toward_max_speed() -> void:
 func test_deceleration_decreases_velocity_toward_zero() -> void:
 	# Starting at full speed, a single physics tick with no input should
 	# reduce the velocity magnitude (friction / smooth stop).
-	var friction := 1200.0
+	var friction := _pc.friction
 	var velocity := Vector2(300.0, 0.0)  # at full speed moving right
 	var speed_before := velocity.length()
 	velocity = velocity.move_toward(Vector2.ZERO, friction * PHYSICS_DELTA)
 	_assert(velocity.length() < speed_before, "friction: velocity decreases when no input is given")
-	_assert(velocity.length() >= 0.0, "friction: velocity does not go negative")
+	_assert(velocity.x >= 0.0, "friction: velocity does not reverse direction")
 
 
 func test_diagonal_input_does_not_exceed_move_speed() -> void:
-	# Input.get_vector() returns a vector clamped to length 1, so diagonal
-	# movement must never exceed move_speed. Simulate a fully diagonal input
-	# (normalised by Godot to length 1) applied over many frames.
-	var move_speed := 300.0
-	var acceleration := 1500.0
+	# A fully diagonal input is represented here by a vector normalized to
+	# length 1, so diagonal movement must never exceed move_speed. Simulate
+	# this normalised diagonal input applied over many frames.
+	var move_speed := _pc.move_speed
+	var acceleration := _pc.acceleration
 	var input_dir := Vector2(1.0, -1.0).normalized()  # diagonal (NE)
 	var velocity := Vector2.ZERO
 	# Simulate 120 frames (2 s) to reach steady state.
