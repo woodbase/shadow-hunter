@@ -14,6 +14,8 @@ func _run_all() -> void:
 	test_missing_target_stays_idle()
 	test_target_in_detection_range_switches_to_chase()
 	test_target_in_attack_range_switches_to_attack()
+	test_auto_detects_player_group_and_chases()
+	test_leaving_detection_range_returns_to_idle()
 	test_hit_flash_sets_and_resets_modulate()
 	test_xp_dropped_signal_emitted_on_death()
 	test_xp_dropped_carries_correct_reward()
