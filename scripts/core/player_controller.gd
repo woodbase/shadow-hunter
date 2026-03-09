@@ -26,7 +26,12 @@ signal died
 ## Input device index for local co-op. -1 = keyboard + mouse (player 1); 0+ = gamepad slot.
 @export var device_id: int = -1
 
+## How far the camera shifts toward the cursor as a fraction of the half-viewport size.
+## 0 = no shift, 1 = full half-viewport shift. Only used for keyboard + mouse (device_id < 0).
+@export_range(0.0, 1.0, 0.01) var mouse_look_sensitivity: float = 0.3
+
 @onready var health_component: HealthComponent = $HealthComponent
+@onready var _camera: Camera2D = $Camera2D
 
 var _weapon: BaseWeapon = null
 var _fire_cooldown: float = 0.0
@@ -34,10 +39,13 @@ var _normalized_bounds: Rect2
 var _damage_feedback_duration: float = 0.2
 var _damage_feedback_timer: SceneTreeTimer = null
 var _damage_overlay: ColorRect = null
+var _viewport_half_size: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
 	_normalized_bounds = playfield_bounds.abs()
+	_viewport_half_size = get_viewport().get_visible_rect().size * 0.5
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	add_to_group("player")
 	health_component.damaged.connect(func(amount: float) -> void:
 		damaged.emit(amount)
@@ -53,6 +61,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_handle_movement(delta)
 	_handle_aim()
+	_handle_mouse_look()
 	_handle_fire(delta)
 	move_and_slide()
 	if clamp_to_playfield:
@@ -87,6 +96,14 @@ func _handle_aim() -> void:
 		)
 		if aim.length() > 0.2:
 			rotation = aim.angle()
+
+
+## Offset the camera toward the cursor so the player can see further ahead.
+## Only active for keyboard + mouse input (device_id < 0).
+func _handle_mouse_look() -> void:
+	if _camera == null or device_id >= 0:
+		return
+	_camera.offset = (get_viewport().get_mouse_position() - _viewport_half_size) * mouse_look_sensitivity
 
 
 func _handle_fire(delta: float) -> void:
@@ -141,3 +158,7 @@ func _on_health_died() -> void:
 
 func _on_invulnerability_changed(active: bool) -> void:
 	modulate = Color(1.0, 1.0, 1.0, 0.45) if active else Color(1.0, 1.0, 1.0, 1.0)
+
+
+func _on_viewport_size_changed() -> void:
+	_viewport_half_size = get_viewport().get_visible_rect().size * 0.5
