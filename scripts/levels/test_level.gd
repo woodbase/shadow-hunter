@@ -214,6 +214,7 @@ func _on_enemy_spawned(enemy: EnemyBase) -> void:
 		health.died.connect(func() -> void:
 			AudioManager.play_sfx("enemy_death", enemy.global_position)
 		)
+	enemy.xp_dropped.connect(player.add_xp)
 
 
 func _on_player_damaged(amount: float) -> void:

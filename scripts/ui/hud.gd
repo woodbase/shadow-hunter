@@ -11,8 +11,11 @@ signal menu_pressed
 @onready var health_label: Label = $HealthContainer/HealthLabel
 @onready var wave_label: Label = $HealthContainer/WaveLabel
 @onready var score_label: Label = $HealthContainer/ScoreLabel
+@onready var level_label: Label = $HealthContainer/LevelLabel
+@onready var xp_bar: ProgressBar = $HealthContainer/XPBar
 @onready var wave_banner: Label = $WaveBanner
 @onready var wave_summary_banner: Label = $WaveSummaryBanner
+@onready var level_up_banner: Label = $LevelUpBanner
 @onready var game_over_panel: PanelContainer = $GameOverPanel
 @onready var final_wave_label: Label = $GameOverPanel/Margin/VBox/FinalWaveLabel
 @onready var final_score_label: Label = $GameOverPanel/Margin/VBox/FinalScoreLabel
@@ -23,17 +26,19 @@ var _total_waves: int = 0
 var _current_wave: int = 1
 var _banner_tween: Tween = null
 var _summary_tween: Tween = null
+var _level_up_tween: Tween = null
 
 
 func _ready() -> void:
 	game_over_panel.visible = false
 	wave_banner.visible = false
 	wave_summary_banner.visible = false
+	level_up_banner.visible = false
 	retry_button.pressed.connect(func() -> void: retry_pressed.emit())
 	menu_button.pressed.connect(func() -> void: menu_pressed.emit())
 
 
-## Bind the HUD to [param player]'s HealthComponent.
+## Bind the HUD to [param player]'s HealthComponent and XPComponent.
 func connect_to_player(player: PlayerController) -> void:
 	var health: HealthComponent = player.get_node_or_null("HealthComponent") as HealthComponent
 	if health == null:
@@ -42,11 +47,34 @@ func connect_to_player(player: PlayerController) -> void:
 	health.health_changed.connect(_on_health_changed)
 	_on_health_changed(health.current_health, health.max_health)
 
+	var xp: XPComponent = player.get_node_or_null("XPComponent") as XPComponent
+	if xp == null:
+		push_error("HUD.connect_to_player: Player has no XPComponent child.")
+		return
+	xp.xp_changed.connect(_on_xp_changed)
+	xp.leveled_up.connect(_on_leveled_up)
+	_on_xp_changed(xp.current_xp, xp.xp_for_next_level())
+	_update_level_label(xp.level)
+
 
 func _on_health_changed(current: float, maximum: float) -> void:
 	health_bar.max_value = maximum
 	health_bar.value = current
 	health_label.text = "HP  %d / %d" % [int(current), int(maximum)]
+
+
+func _on_xp_changed(current_xp: int, xp_needed: int) -> void:
+	xp_bar.max_value = xp_needed
+	xp_bar.value = current_xp
+
+
+func _on_leveled_up(new_level: int) -> void:
+	_update_level_label(new_level)
+	_show_level_up_banner(new_level)
+
+
+func _update_level_label(lv: int) -> void:
+	level_label.text = "Lv %d" % lv
 
 
 func set_total_waves(total: int) -> void:
@@ -82,8 +110,11 @@ func show_final_results(score: int, waves_survived: int) -> void:
 		_banner_tween.kill()
 	if _summary_tween != null:
 		_summary_tween.kill()
+	if _level_up_tween != null:
+		_level_up_tween.kill()
 	wave_banner.visible = false
 	wave_summary_banner.visible = false
+	level_up_banner.visible = false
 
 	var wave_text := "Final Wave: %d" % waves_survived
 	if _total_waves > 0:
@@ -121,3 +152,18 @@ func _play_banner(label: Label, text: String, is_primary: bool) -> void:
 		_banner_tween = tween
 	else:
 		_summary_tween = tween
+
+
+func _show_level_up_banner(new_level: int) -> void:
+	if _level_up_tween != null:
+		_level_up_tween.kill()
+	var label := level_up_banner
+	label.text = "Level Up!  Lv %d" % new_level
+	label.visible = true
+	label.modulate.a = 0.0
+	var tween := create_tween()
+	tween.tween_property(label, "modulate:a", 1.0, 0.2)
+	tween.tween_interval(0.9)
+	tween.tween_property(label, "modulate:a", 0.0, 0.35)
+	tween.tween_callback(func() -> void: label.visible = false)
+	_level_up_tween = tween

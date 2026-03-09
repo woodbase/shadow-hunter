@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/core/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/core/health_component.gd" id="2_health"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/pulse_carbine.tscn" id="3_weapon"]
 [ext_resource type="Texture2D" path="res://assets/player/player.png" id="4_player_texture"]
+[ext_resource type="Script" path="res://scripts/core/xp_component.gd" id="5_xp"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_1"]
 radius = 14.0
@@ -22,6 +23,9 @@ weapon_path = NodePath("WeaponMount/PulseCarbine")
 script = ExtResource("2_health")
 max_health = 100.0
 invulnerability_duration = 0.5
+
+[node name="XPComponent" type="Node" parent="."]
+script = ExtResource("5_xp")
 
 [node name="WeaponMount" type="Node2D" parent="."]
 
