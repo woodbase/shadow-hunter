@@ -31,6 +31,16 @@ theme_override_font_sizes/font_size = 18
 text = "Score: 0"
 theme_override_font_sizes/font_size = 14
 
+[node name="LevelLabel" type="Label" parent="HealthContainer"]
+text = "Lv 1"
+theme_override_font_sizes/font_size = 14
+
+[node name="XPBar" type="ProgressBar" parent="HealthContainer"]
+custom_minimum_size = Vector2(200, 10)
+max_value = 100.0
+value = 0.0
+show_percentage = false
+
 [node name="WaveBanner" type="Label" parent="."]
 visible = false
 anchor_left = 0.5
@@ -64,6 +74,23 @@ text = "Wave cleared"
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 24
+
+[node name="LevelUpBanner" type="Label" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_top = 0.36
+anchor_right = 0.5
+anchor_bottom = 0.36
+offset_left = -180.0
+offset_top = -26.0
+offset_right = 180.0
+offset_bottom = 26.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Level Up!  Lv 2"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 26
 
 [node name="GameOverPanel" type="PanelContainer" parent="."]
 visible = false

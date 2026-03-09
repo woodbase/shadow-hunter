@@ -31,6 +31,7 @@ signal died
 @export_range(0.0, 1.0, 0.01) var mouse_look_sensitivity: float = 0.3
 
 @onready var health_component: HealthComponent = $HealthComponent
+@onready var xp_component: XPComponent = $XPComponent
 @onready var _camera: Camera2D = get_node_or_null("Camera2D") as Camera2D
 
 var _weapon: BaseWeapon = null
@@ -129,6 +130,11 @@ func _fire() -> void:
 ## Delegate incoming damage to the HealthComponent.
 func take_damage(amount: float) -> void:
 	health_component.take_damage(amount)
+
+
+## Grant XP to the player via the XPComponent.
+func add_xp(amount: int) -> void:
+	xp_component.add_xp(amount)
 
 
 ## Briefly flash the damage overlay red to give visual hit feedback.
