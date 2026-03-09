@@ -1,0 +1,212 @@
+name: Create GitHub Issues from Project Plan
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/create-issues.yml'
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create labels, milestones, and issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // ── Helper: create or update a label ─────────────────────────────
+            async function ensureLabel(name, color, description) {
+              try {
+                const { data: existing } = await github.rest.issues.getLabel({ owner, repo, name });
+                if (existing.color !== color || existing.description !== description) {
+                  await github.rest.issues.updateLabel({ owner, repo, name, color, description });
+                  console.log(`Updated label: ${name}`);
+                } else {
+                  console.log(`Label unchanged: ${name}`);
+                }
+              } catch (e) {
+                if (e.status === 404) {
+                  await github.rest.issues.createLabel({ owner, repo, name, color, description });
+                  console.log(`Created label: ${name}`);
+                } else {
+                  throw e;
+                }
+              }
+            }
+
+            // ── Helper: create or get a milestone (paginated) ────────────────
+            async function ensureMilestone(title, description) {
+              const milestones = await github.paginate(github.rest.issues.listMilestones, {
+                owner, repo, state: 'all', per_page: 100
+              });
+              const existing = milestones.find(m => m.title === title);
+              if (existing) {
+                console.log(`Milestone already exists: ${title} (#${existing.number})`);
+                return existing.number;
+              }
+              const { data } = await github.rest.issues.createMilestone({ owner, repo, title, description });
+              console.log(`Created milestone: ${title} (#${data.number})`);
+              return data.number;
+            }
+
+            // ── Pre-fetch all existing issue titles (paginated) ──────────────
+            async function fetchExistingIssueTitles() {
+              const titles = new Set();
+              let page = 1;
+              while (true) {
+                const { data } = await github.rest.issues.listForRepo({
+                  owner, repo, state: 'all', per_page: 100, page
+                });
+                if (data.length === 0) break;
+                data.forEach(i => {
+                  // listForRepo returns both issues and PRs; only track issue titles
+                  if (!i.pull_request) {
+                    titles.add(i.title);
+                  }
+                });
+                if (data.length < 100) break;
+                page++;
+              }
+              return titles;
+            }
+
+            // ── Helper: create an issue (skip if title already exists) ───────
+            async function createIssue(existingTitles, title, body, labelNames, milestoneNumber) {
+              if (existingTitles.has(title)) {
+                console.log(`Issue already exists: ${title}`);
+                return;
+              }
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+                labels: labelNames,
+                milestone: milestoneNumber,
+              });
+              existingTitles.add(title);
+              console.log(`Created issue: ${title}`);
+            }
+
+            // ════════════════════════════════════════════════════════════════
+            // 1. LABELS  (hardcoded from docs/project-plan/LABEL_SCHEMA.md)
+            // ════════════════════════════════════════════════════════════════
+            const systemLabels = [
+              { name: 'system:player',      color: '0075ca', description: 'Player systems' },
+              { name: 'system:enemy',       color: 'e4e669', description: 'Enemy systems' },
+              { name: 'system:combat',      color: 'd93f0b', description: 'Combat systems' },
+              { name: 'system:spawn',       color: 'c2e0c6', description: 'Spawn systems' },
+              { name: 'system:lighting',    color: 'bfd4f2', description: 'Lighting systems' },
+              { name: 'system:progression', color: '0e8a16', description: 'Progression systems' },
+              { name: 'system:ui',          color: 'f9d0c4', description: 'UI systems' },
+              { name: 'system:audio',       color: 'e99695', description: 'Audio systems' },
+            ];
+            const contentLabels = [
+              { name: 'content:enemy',       color: 'fef2c0', description: 'Enemy content' },
+              { name: 'content:boss',        color: 'b60205', description: 'Boss content' },
+              { name: 'content:environment', color: '006b75', description: 'Environment content' },
+            ];
+            const difficultyLabels = [
+              { name: 'difficulty:low',    color: '0e8a16', description: 'Low difficulty task' },
+              { name: 'difficulty:medium', color: 'e4e669', description: 'Medium difficulty task' },
+              { name: 'difficulty:high',   color: 'b60205', description: 'High difficulty task' },
+            ];
+            const sprintLabels = [
+              { name: 'sprint:1', color: 'ededed', description: 'Sprint 1 – Player' },
+              { name: 'sprint:2', color: 'ededed', description: 'Sprint 2 – Enemy AI' },
+              { name: 'sprint:3', color: 'ededed', description: 'Sprint 3 – Combat' },
+              { name: 'sprint:4', color: 'ededed', description: 'Sprint 4 – Progression' },
+              { name: 'sprint:5', color: 'ededed', description: 'Sprint 5 – Vertical Slice' },
+              { name: 'sprint:6', color: 'ededed', description: 'Sprint 6 – Demo Content' },
+            ];
+
+            for (const l of [...systemLabels, ...contentLabels, ...difficultyLabels, ...sprintLabels]) {
+              await ensureLabel(l.name, l.color, l.description);
+            }
+
+            // ════════════════════════════════════════════════════════════════
+            // 2. MILESTONES  (hardcoded from docs/project-plan/PROJECT_PLAN.md)
+            // ════════════════════════════════════════════════════════════════
+            const prototypeMs = await ensureMilestone('Prototype',      'Playable gameplay loop');
+            await ensureMilestone('Vertical Slice', 'Polished single level');
+            await ensureMilestone('Demo',           'Content-complete demo');
+
+            // ════════════════════════════════════════════════════════════════
+            // 3. ISSUES  (hardcoded from docs/project-plan/PROJECT_PLAN.md)
+            // ════════════════════════════════════════════════════════════════
+            const issues = [
+              // ── Player Systems ─────────────────────────────────────────────
+              {
+                title: 'Player Movement Controller',
+                labels: ['system:player', 'sprint:1'],
+                milestone: prototypeMs,
+                body: `## Description\n\nImplement basic FPS movement system.\n\n## Acceptance Criteria\n\n- [ ] WASD movement\n- [ ] Physics based\n- [ ] Smooth movement\n\n## Story Points\n\n3`,
+              },
+              {
+                title: 'Mouse Look',
+                labels: ['system:player', 'sprint:1'],
+                milestone: prototypeMs,
+                body: `## Description\n\nImplement mouse camera rotation.\n\n## Acceptance Criteria\n\n- [ ] Horizontal rotation\n- [ ] Vertical rotation\n- [ ] Adjustable sensitivity\n\n## Story Points\n\n2`,
+              },
+              // ── Combat ─────────────────────────────────────────────────────
+              {
+                title: 'Shooting System',
+                labels: ['system:combat', 'sprint:1'],
+                milestone: prototypeMs,
+                body: `## Description\n\nImplement weapon shooting system.\n\n## Acceptance Criteria\n\n- [ ] Mouse click fires weapon\n- [ ] Fire rate limit\n- [ ] Basic muzzle flash\n\n## Story Points\n\n3`,
+              },
+              // ── Enemies ────────────────────────────────────────────────────
+              {
+                title: 'Basic Enemy AI',
+                labels: ['system:enemy', 'sprint:2'],
+                milestone: prototypeMs,
+                body: `## Description\n\nEnemy detects and moves toward player.\n\n## Acceptance Criteria\n\n- [ ] Enemy detects player\n- [ ] Enemy navigates toward player\n- [ ] Enemy attacks player\n\n## Story Points\n\n5`,
+              },
+              {
+                title: 'Enemy Damage',
+                labels: ['system:enemy', 'sprint:2'],
+                milestone: prototypeMs,
+                body: `## Description\n\nEnemies take damage and die.\n\n## Acceptance Criteria\n\n- [ ] HP system\n- [ ] Death logic\n- [ ] XP drop\n\n## Story Points\n\n3`,
+              },
+              // ── Spawning ───────────────────────────────────────────────────
+              {
+                title: 'Enemy Spawn Manager',
+                labels: ['system:spawn', 'sprint:3'],
+                milestone: prototypeMs,
+                body: `## Description\n\nSystem responsible for spawning enemies.\n\n## Acceptance Criteria\n\n- [ ] Spawn points\n- [ ] Timed spawning\n- [ ] Difficulty scaling\n\n## Story Points\n\n5`,
+              },
+              // ── Progression ────────────────────────────────────────────────
+              {
+                title: 'XP System',
+                labels: ['system:progression', 'sprint:4'],
+                milestone: prototypeMs,
+                body: `## Description\n\nEnemies drop XP and player collects it.\n\n## Acceptance Criteria\n\n- [ ] XP drops\n- [ ] XP pickup\n- [ ] XP counter\n\n## Story Points\n\n3`,
+              },
+              {
+                title: 'Level System',
+                labels: ['system:progression', 'sprint:4'],
+                milestone: prototypeMs,
+                body: `## Description\n\nPlayer levels up when XP threshold is reached.\n\n## Acceptance Criteria\n\n- [ ] XP bar\n- [ ] Level increases\n- [ ] Level-up trigger\n\n## Story Points\n\n5`,
+              },
+            ];
+
+            const existingTitles = await fetchExistingIssueTitles();
+
+            for (const issue of issues) {
+              await createIssue(existingTitles, issue.title, issue.body, issue.labels, issue.milestone);
+            }
+
+            console.log('Done! All labels, milestones, and issues have been created.');
