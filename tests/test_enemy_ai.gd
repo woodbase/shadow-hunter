@@ -15,6 +15,9 @@ func _run_all() -> void:
 	test_target_in_detection_range_switches_to_chase()
 	test_target_in_attack_range_switches_to_attack()
 	test_hit_flash_sets_and_resets_modulate()
+	test_xp_dropped_signal_emitted_on_death()
+	test_xp_dropped_carries_correct_reward()
+	test_xp_dropped_not_emitted_on_non_lethal_damage()
 
 
 func _assert(condition: bool, name: String) -> void:
@@ -120,3 +123,28 @@ func test_hit_flash_sets_and_resets_modulate() -> void:
 
 	enemy._on_hit_flash_timeout()
 	_assert(body.modulate == base_color, "hit flash timeout restores base modulate")
+
+
+func test_xp_dropped_signal_emitted_on_death() -> void:
+	var enemy := _make_enemy()
+	var dropped := false
+	enemy.xp_dropped.connect(func(_amount: int) -> void: dropped = true)
+	enemy.health_component.take_damage(enemy.health_component.max_health)
+	_assert(dropped, "xp_dropped signal emitted when enemy dies")
+
+
+func test_xp_dropped_carries_correct_reward() -> void:
+	var enemy := _make_enemy()
+	enemy.xp_reward = 25
+	var received: int = -1
+	enemy.xp_dropped.connect(func(amount: int) -> void: received = amount)
+	enemy.health_component.take_damage(enemy.health_component.max_health)
+	_assert(received == 25, "xp_dropped carries the correct xp_reward value")
+
+
+func test_xp_dropped_not_emitted_on_non_lethal_damage() -> void:
+	var enemy := _make_enemy()
+	var dropped := false
+	enemy.xp_dropped.connect(func(_amount: int) -> void: dropped = true)
+	enemy.health_component.take_damage(1.0)
+	_assert(not dropped, "xp_dropped not emitted on non-lethal damage")

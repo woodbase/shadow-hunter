@@ -12,3 +12,4 @@ extends Resource
 @export var attack_range: float = 50.0
 @export var damage: float = 10.0
 @export var attack_cooldown: float = 1.0
+@export var xp_reward: int = 10

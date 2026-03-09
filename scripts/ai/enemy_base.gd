@@ -10,6 +10,10 @@ enum State { IDLE, CHASE, ATTACK }
 
 ## Emitted when the enemy's health reaches zero, just before [method queue_free].
 signal died
+
+## Emitted alongside [signal died], carrying the XP reward the enemy grants.
+signal xp_dropped(amount: int)
+
 signal state_changed(new_state: State, old_state: State)
 
 @export var move_speed: float = 120.0
@@ -17,6 +21,7 @@ signal state_changed(new_state: State, old_state: State)
 @export var attack_range: float = 50.0
 @export var damage: float = 10.0
 @export var attack_cooldown: float = 1.0
+@export var xp_reward: int = 10
 @export var projectile_scene: PackedScene
 @export var projectile_speed: float = 350.0
 
@@ -131,6 +136,7 @@ func _on_health_died() -> void:
 		return
 	_is_dying = true
 	died.emit()
+	xp_dropped.emit(xp_reward)
 	velocity = Vector2.ZERO
 	if _collision_shape != null:
 		_collision_shape.disabled = true
