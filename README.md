@@ -111,12 +111,12 @@ Examples:
 ---
 
 # Screenshots
-
+<!--
 <p align="center">
   <img src="docs/screenshot1.png" width="400">
   <img src="docs/screenshot2.png" width="400">
 </p>
-
+-->
 ---
 
 # Technology
