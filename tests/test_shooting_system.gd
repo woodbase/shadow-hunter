@@ -37,8 +37,8 @@ func _run_all() -> void:
 	test_muzzle_flash_duration_constant_is_positive()
 	test_muzzle_flash_timer_positive_after_firing()
 	test_muzzle_flash_timer_reaches_zero_after_full_duration()
-	test_pulse_carbine_muzzle_flash_hidden_on_ready()
 	test_pulse_carbine_has_muzzle_flash_node()
+	test_pulse_carbine_muzzle_flash_hidden_on_ready()
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ func _assert(condition: bool, name: String) -> void:
 		printerr("  [FAIL] %s" % name)
 
 
-func _is_approx_v(a: Vector2, b: Vector2, tolerance: float = 0.001) -> bool:
+func _is_approx_equal(a: Vector2, b: Vector2, tolerance: float = 0.001) -> bool:
 	return a.distance_to(b) < tolerance
 
 
@@ -90,10 +90,19 @@ func test_fire_rate_cooldown_blocks_rapid_second_shot() -> void:
 
 
 func test_fire_rate_cooldown_allows_shot_after_full_elapsed_time() -> void:
-	# Simulate the full cooldown period passing.
+	# Start with cooldown set to a full fire_rate interval.
+	# After half the interval has elapsed the shot must still be blocked;
+	# only once the full interval passes should a shot be permitted.
 	var fire_rate: float = 0.15
 	var cooldown: float = fire_rate
-	cooldown -= fire_rate
+
+	# Simulate half the interval — shot is still blocked.
+	cooldown -= fire_rate * 0.5
+	_assert(not _gate_allows_fire(cooldown),
+		"shot is still blocked when only half the fire_rate has elapsed")
+
+	# Simulate the remaining half — shot should now be allowed.
+	cooldown -= fire_rate * 0.5
 	_assert(_gate_allows_fire(cooldown),
 		"shot is allowed once the full fire_rate duration has elapsed")
 
@@ -105,13 +114,13 @@ func test_fire_rate_cooldown_allows_shot_after_full_elapsed_time() -> void:
 ## The production formula is: Vector2.RIGHT.rotated(rotation)
 func test_fire_direction_right_at_zero_rotation() -> void:
 	var direction := Vector2.RIGHT.rotated(0.0)
-	_assert(_is_approx_v(direction, Vector2(1.0, 0.0)),
+	_assert(_is_approx_equal(direction, Vector2(1.0, 0.0)),
 		"fire direction is RIGHT when player rotation is 0")
 
 
 func test_fire_direction_up_at_negative_half_pi_rotation() -> void:
 	var direction := Vector2.RIGHT.rotated(-PI / 2.0)
-	_assert(_is_approx_v(direction, Vector2(0.0, -1.0)),
+	_assert(_is_approx_equal(direction, Vector2(0.0, -1.0)),
 		"fire direction is UP when player rotation is -PI/2")
 
 
@@ -127,12 +136,33 @@ func test_fire_direction_is_normalised_at_arbitrary_rotation() -> void:
 # ---------------------------------------------------------------------------
 
 func test_cooldown_reset_equals_weapon_fire_rate_after_shot() -> void:
-	var fire_rate: float = 0.2
-	var cooldown: float = 0.0
-	# Mirror PlayerController._fire(): cooldown = _weapon.fire_rate
-	cooldown = fire_rate
-	_assert(is_equal_approx(cooldown, fire_rate),
-		"_fire_cooldown is set to weapon.fire_rate immediately after firing")
+	# Instantiate a minimal PlayerController + BaseWeapon and verify that
+	# calling _fire() actually sets _fire_cooldown to the weapon's fire_rate.
+	var hc := HealthComponent.new()
+	hc.name = "HealthComponent"
+	hc.max_health = 100.0
+	var player := PlayerController.new()
+	player.weapon_path = NodePath("")  # prevent _ready() from looking up a weapon
+	player.add_child(hc)
+	add_child(player)
+
+	var weapon := BaseWeapon.new()
+	weapon.projectile_scene = null  # fire() will warn and return early, but cooldown still resets
+	# set_weapon() stores a reference only — it does NOT reparent the weapon node.
+	player.set_weapon(weapon)
+	add_child(weapon)  # weapon is a child of this test node, not of player
+
+	# Cooldown must be zero before any shot.
+	_assert(is_equal_approx(player._fire_cooldown, 0.0),
+		"cooldown_reset: _fire_cooldown starts at zero")
+
+	player._fire()
+
+	_assert(is_equal_approx(player._fire_cooldown, weapon.fire_rate),
+		"_fire_cooldown is set to weapon.fire_rate immediately after _fire()")
+
+	player.queue_free()
+	weapon.queue_free()
 
 
 # ---------------------------------------------------------------------------
@@ -172,18 +202,37 @@ func test_muzzle_flash_duration_constant_is_positive() -> void:
 
 
 func test_muzzle_flash_timer_positive_after_firing() -> void:
-	# Simulate _show_muzzle_flash(): timer is set to MUZZLE_FLASH_DURATION.
-	var flash_timer: float = 0.0
-	flash_timer = BaseWeapon.MUZZLE_FLASH_DURATION
-	_assert(flash_timer > 0.0,
-		"muzzle flash timer is positive immediately after a shot")
+	# Instantiate the weapon scene so it has a real MuzzleFlash child, then call
+	# _show_muzzle_flash() directly and inspect the live _flash_timer field.
+	var scene: PackedScene = load("res://scenes/weapons/pulse_carbine.tscn")
+	var weapon: BaseWeapon = scene.instantiate() as BaseWeapon
+	add_child(weapon)
+	weapon._show_muzzle_flash()
+	_assert(weapon._flash_timer > 0.0,
+		"muzzle flash timer is positive immediately after _show_muzzle_flash() is called")
+	weapon.queue_free()
 
 
 func test_muzzle_flash_timer_reaches_zero_after_full_duration() -> void:
-	var flash_timer: float = BaseWeapon.MUZZLE_FLASH_DURATION
-	flash_timer -= BaseWeapon.MUZZLE_FLASH_DURATION
-	_assert(flash_timer <= 0.0,
+	# Instantiate the weapon scene and use its real _process() to drive
+	# the timer.  After a partial tick the flash must still be active;
+	# after another tick that pushes past MUZZLE_FLASH_DURATION it must expire.
+	var scene: PackedScene = load("res://scenes/weapons/pulse_carbine.tscn")
+	var weapon: BaseWeapon = scene.instantiate() as BaseWeapon
+	add_child(weapon)
+	weapon._show_muzzle_flash()
+
+	# Partial frame — flash should still be active.
+	var partial_delta: float = BaseWeapon.MUZZLE_FLASH_DURATION * 0.5
+	weapon._process(partial_delta)
+	_assert(weapon._flash_timer > 0.0,
+		"muzzle flash timer still positive after partial delta")
+
+	# Remaining time plus a small margin — flash should now have expired.
+	weapon._process(BaseWeapon.MUZZLE_FLASH_DURATION)
+	_assert(weapon._flash_timer <= 0.0,
 		"muzzle flash timer reaches zero after the full flash duration has elapsed")
+	weapon.queue_free()
 
 
 func test_pulse_carbine_has_muzzle_flash_node() -> void:
