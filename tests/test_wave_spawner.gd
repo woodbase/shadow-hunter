@@ -23,6 +23,10 @@ func _run_all() -> void:
 	test_transitioning_guard_starts_false()
 	test_start_wave_guard_clears_starting_flag()
 	test_enemy_removed_advances_single_wave_step()
+	test_difficulty_multiplier_at_wave_zero_is_1()
+	test_difficulty_multiplier_scales_linearly()
+	test_procedural_count_scales_with_difficulty()
+	test_data_driven_count_ignores_difficulty_scale()
 
 
 func _assert(condition: bool, name: String) -> void:
@@ -151,3 +155,37 @@ func test_enemy_removed_advances_single_wave_step() -> void:
 	spawner._wave_in_progress = true
 	spawner._on_enemy_removed(true)
 	_assert(spawner._current_wave == 1, "_on_enemy_removed increments current wave once")
+
+
+func test_difficulty_multiplier_at_wave_zero_is_1() -> void:
+	var spawner := WaveSpawner.new()
+	spawner.health_scale_per_wave = 0.15
+	_assert(
+		is_equal_approx(spawner._get_difficulty_multiplier(spawner.health_scale_per_wave, 0), 1.0),
+		"difficulty multiplier is 1.0 on wave 0 regardless of scale"
+	)
+
+
+func test_difficulty_multiplier_scales_linearly() -> void:
+	var spawner := WaveSpawner.new()
+	# Wave 4 with 0.10 scale/wave: 1.0 + 4 * 0.10 = 1.40
+	var mult: float = spawner._get_difficulty_multiplier(0.10, 4)
+	_assert(is_equal_approx(mult, 1.40), "difficulty multiplier grows linearly: wave 4 with 0.10 scale = 1.40")
+
+
+func test_procedural_count_scales_with_difficulty() -> void:
+	var spawner := WaveSpawner.new()
+	spawner.enemies_per_wave = 5
+	spawner.count_scale_per_wave = 0.20
+	spawner.wave_data_list = []
+	# Wave 0: 5 * (1.0 + 0 * 0.20) = 5; Wave 5: 5 * (1.0 + 5 * 0.20) = 5 * 2.0 = 10
+	_assert(spawner._get_wave_enemy_count(0) == 5, "procedural enemy count matches base at wave 0")
+	_assert(spawner._get_wave_enemy_count(5) == 10, "procedural enemy count doubles at wave 5 with 0.20 scale/wave")
+
+
+func test_data_driven_count_ignores_difficulty_scale() -> void:
+	var spawner := WaveSpawner.new()
+	spawner.count_scale_per_wave = 0.50
+	var wave := _make_wave(6, 0.3)
+	spawner.wave_data_list = [wave]
+	_assert(spawner._get_wave_enemy_count(0) == 6, "data-driven enemy count is used as-is and ignores count_scale_per_wave")
