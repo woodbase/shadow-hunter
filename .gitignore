@@ -1,0 +1,55 @@
+# =========================
+# Godot 4.x
+# =========================
+
+# Importerade resurser (skapas automatiskt)
+.import/
+
+# Export builds
+/export/
+/build/
+
+# Mono / C# (om ni använder det)
+.mono/
+data_*/
+
+# Editor cache & temp
+*.translation
+*.import
+*.tmp
+
+# OS-specifika filer
+.DS_Store
+Thumbs.db
+
+# Linux
+*~
+
+# Windows
+desktop.ini
+
+# =========================
+# IDE / Editor
+# =========================
+
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+
+# =========================
+# Godot C# bin/obj (om C#)
+# =========================
+bin/
+obj/
+
+# =========================
+# Loggar
+# =========================
+*.log
+
+# =========================
+# Export presets (valfritt)
+# =========================
+# export_presets.cfg
