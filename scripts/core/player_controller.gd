@@ -31,7 +31,7 @@ signal died
 @export_range(0.0, 1.0, 0.01) var mouse_look_sensitivity: float = 0.3
 
 @onready var health_component: HealthComponent = $HealthComponent
-@onready var _camera: Camera2D = $Camera2D
+@onready var _camera: Camera2D = get_node_or_null("Camera2D") as Camera2D
 
 var _weapon: BaseWeapon = null
 var _fire_cooldown: float = 0.0
@@ -60,8 +60,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_handle_movement(delta)
-	_handle_aim()
 	_handle_mouse_look()
+	_handle_aim()
 	_handle_fire(delta)
 	move_and_slide()
 	if clamp_to_playfield:
