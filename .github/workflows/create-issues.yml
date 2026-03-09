@@ -153,13 +153,13 @@ jobs:
                 title: 'Player Movement Controller',
                 labels: ['system:player', 'sprint:1'],
                 milestone: prototypeMs,
-                body: `## Description\n\nImplement basic FPS movement system.\n\n## Acceptance Criteria\n\n- [ ] WASD movement\n- [ ] Physics based\n- [ ] Smooth movement\n\n## Story Points\n\n3`,
+                body: `## Description\n\nImplement top-down movement system for a 2D action shooter.\n\n## Acceptance Criteria\n\n- [ ] WASD movement in all four directions\n- [ ] Physics-based\n- [ ] Smooth movement relative to top-down camera\n\n## Story Points\n\n3`,
               },
               {
-                title: 'Mouse Look',
+                title: 'Mouse Aim/Rotate',
                 labels: ['system:player', 'sprint:1'],
                 milestone: prototypeMs,
-                body: `## Description\n\nImplement mouse camera rotation.\n\n## Acceptance Criteria\n\n- [ ] Horizontal rotation\n- [ ] Vertical rotation\n- [ ] Adjustable sensitivity\n\n## Story Points\n\n2`,
+                body: `## Description\n\nImplement mouse aiming and player rotation for top-down perspective.\n\n## Acceptance Criteria\n\n- [ ] Player rotates to face mouse cursor\n- [ ] Aiming direction updates in real time\n- [ ] Adjustable sensitivity\n\n## Story Points\n\n2`,
               },
               // ── Combat ─────────────────────────────────────────────────────
               {
@@ -167,6 +167,13 @@ jobs:
                 labels: ['system:combat', 'sprint:1'],
                 milestone: prototypeMs,
                 body: `## Description\n\nImplement weapon shooting system.\n\n## Acceptance Criteria\n\n- [ ] Mouse click fires weapon\n- [ ] Fire rate limit\n- [ ] Basic muzzle flash\n\n## Story Points\n\n3`,
+              },
+              // ── Light ──────────────────────────────────────────────────────
+              {
+                title: 'Light System',
+                labels: ['system:lighting', 'sprint:1'],
+                milestone: prototypeMs,
+                body: `## Description\n\nImplement the core light radius visibility system. The player's lantern emits a circular light that reveals enemies hidden in darkness, forming the central gameplay mechanic.\n\n## Acceptance Criteria\n\n- [ ] Player lantern emits a circular light radius\n- [ ] Enemies outside the light radius are hidden in darkness\n- [ ] Enemies entering the light radius become visible to the player\n- [ ] Light radius size is configurable\n\n## Story Points\n\n3`,
               },
               // ── Enemies ────────────────────────────────────────────────────
               {

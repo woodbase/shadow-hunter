@@ -74,7 +74,7 @@ Implement top-down movement system for a 2D action shooter.
 
 Acceptance Criteria:
 - WASD movement in all four directions
-- Physics based
+- Physics-based
 - Smooth movement relative to top-down camera
 
 ---
@@ -116,7 +116,7 @@ Acceptance Criteria:
 ## Light
 
 ### Light System
-Labels: system:player
+Labels: system:lighting
 Milestone: Prototype
 Sprint: 1
 Story Points: 3
