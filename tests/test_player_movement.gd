@@ -1,7 +1,11 @@
-## Unit tests for PlayerController movement direction.
+## Unit tests for PlayerController movement direction and physics smoothing.
 ##
-## Validates that movement input stays world-aligned (WASD always maps to up,
-## down, left, right) regardless of the player's facing direction.
+## Validates that:
+##  - WASD input maps to the expected world-space directions.
+##  - Acceleration smoothly ramps velocity toward max speed.
+##  - Friction smoothly decelerates velocity to zero on no input.
+##  - Diagonal movement speed is capped to move_speed.
+##  - Playfield clamping keeps the player inside bounds.
 ##
 ## Run standalone: create a scene with a Node root, attach this script.
 extends Node
@@ -9,9 +13,19 @@ extends Node
 var _passed: int = 0
 var _failed: int = 0
 
+## Simulated physics frame duration (~60 fps).
+const PHYSICS_DELTA := 0.016
+## Tolerance used for floating-point speed comparisons.
+const SPEED_EPSILON := 0.01
+
+## Shared PlayerController instance used to read exported default values.
+var _pc: PlayerController
+
 
 func _ready() -> void:
+	_pc = PlayerController.new()
 	_run_all()
+	_pc.free()
 	print("PlayerController movement tests: %d passed, %d failed." % [_passed, _failed])
 
 
@@ -20,6 +34,9 @@ func _run_all() -> void:
 	test_forward_input_ignores_player_rotation()
 	test_right_input_ignores_player_rotation()
 	test_zero_input_does_not_change_direction()
+	test_acceleration_increases_velocity_toward_max_speed()
+	test_deceleration_decreases_velocity_toward_zero()
+	test_diagonal_input_does_not_exceed_move_speed()
 	test_clamp_normal_bounds_keeps_position_inside()
 	test_clamp_inverted_bounds_same_as_normalized()
 	test_clamp_position_inside_bounds_unchanged()
@@ -80,6 +97,60 @@ func test_zero_input_does_not_change_direction() -> void:
 	var result := input_dir.rotated(rotation_angle)
 	_assert(_is_approx_equal(result, Vector2.ZERO),
 		"zero input stays zero regardless of rotation")
+
+
+# ---------------------------------------------------------------------------
+# Physics smoothing tests
+#
+# These tests validate the acceleration/friction math used by
+# PlayerController._handle_movement():
+#   velocity = velocity.move_toward(input_dir * move_speed, acceleration * delta)
+#   velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
+# ---------------------------------------------------------------------------
+
+func test_acceleration_increases_velocity_toward_max_speed() -> void:
+	# Starting from rest, a single physics tick with upward input should
+	# increase the velocity magnitude toward move_speed (but not exceed it).
+	# move_speed and acceleration are read from the shared PlayerController
+	# instance so the test stays aligned with the controller's tuning values.
+	var move_speed := _pc.move_speed
+	var acceleration := _pc.acceleration
+	var input_dir := Vector2(0.0, -1.0)  # W pressed
+	var velocity := Vector2.ZERO
+	velocity = velocity.move_toward(input_dir * move_speed, acceleration * PHYSICS_DELTA)
+	# After one frame the velocity should be in the upward direction and greater
+	# than zero but not yet at full speed.
+	_assert(velocity.y < 0.0, "velocity gains upward component on W press")
+	_assert(velocity.length() > 0.0, "acceleration: velocity increases from rest")
+	_assert(velocity.length() <= move_speed, "acceleration: velocity does not exceed move_speed in one tick")
+
+
+func test_deceleration_decreases_velocity_toward_zero() -> void:
+	# Starting at full speed, a single physics tick with no input should
+	# reduce the velocity magnitude (friction / smooth stop).
+	var friction := _pc.friction
+	var velocity := Vector2(300.0, 0.0)  # at full speed moving right
+	var speed_before := velocity.length()
+	velocity = velocity.move_toward(Vector2.ZERO, friction * PHYSICS_DELTA)
+	_assert(velocity.length() < speed_before, "friction: velocity decreases when no input is given")
+	_assert(velocity.x >= 0.0, "friction: velocity does not reverse direction")
+
+
+func test_diagonal_input_does_not_exceed_move_speed() -> void:
+	# A fully diagonal input is represented here by a vector normalized to
+	# length 1, so diagonal movement must never exceed move_speed. Simulate
+	# this normalised diagonal input applied over many frames.
+	var move_speed := _pc.move_speed
+	var acceleration := _pc.acceleration
+	var input_dir := Vector2(1.0, -1.0).normalized()  # diagonal (NE)
+	var velocity := Vector2.ZERO
+	# Simulate 120 frames (2 s) to reach steady state.
+	for _i in range(120):
+		velocity = velocity.move_toward(input_dir * move_speed, acceleration * PHYSICS_DELTA)
+	_assert(
+		velocity.length() <= move_speed + SPEED_EPSILON,
+		"diagonal input: speed at steady state does not exceed move_speed"
+	)
 
 
 # ---------------------------------------------------------------------------
