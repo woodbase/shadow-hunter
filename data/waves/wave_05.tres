@@ -7,7 +7,8 @@
 [resource]
 script = ExtResource("1_wave")
 wave_name = "Final Bulwark"
-enemy_count = 12
-spawn_delay = 0.25
+enemy_count = 14
+spawn_delay = 0.2
 enemy_scene = ExtResource("2_enemy")
 enemy_scene_pool = Array[PackedScene]([ExtResource("2_enemy"), ExtResource("3_enemy_striker")])
+wave_identity = &"burst"

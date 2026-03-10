@@ -45,6 +45,12 @@ signal enemy_killed
 ## Multiplier is [code]1.0 + wave_index * count_scale_per_wave[/code].
 @export var count_scale_per_wave: float = 0.20
 
+const IDENTITY_STANDARD: StringName = "standard"
+const IDENTITY_RUSH: StringName = "rush"
+const IDENTITY_ATTRITION: StringName = "attrition"
+const IDENTITY_BURST: StringName = "burst"
+const BURST_GROUP_SIZE: int = 3
+
 ## Set by the owning level. Also accepted via [method start].
 var spawn_points: Array[Node2D] = []
 
@@ -106,11 +112,64 @@ func _start_wave(index: int) -> void:
 
 
 func _spawn_wave_enemies() -> void:
+	var wave_data: WaveData = _get_wave_data(_current_wave)
+	var identity: StringName = _get_wave_identity(wave_data)
+	match identity:
+		IDENTITY_RUSH:
+			await _spawn_rush_wave()
+		IDENTITY_ATTRITION:
+			await _spawn_attrition_wave()
+		IDENTITY_BURST:
+			await _spawn_burst_wave()
+		_:
+			await _spawn_standard_wave()
+
+
+func _spawn_standard_wave() -> void:
 	var wave_spawn_delay: float = _get_wave_spawn_delay(_current_wave)
 	for i: int in _active_enemies:
 		if i > 0:
 			await get_tree().create_timer(wave_spawn_delay).timeout
 		_spawn_single_enemy()
+
+
+func _spawn_rush_wave() -> void:
+	var base_delay: float = _get_wave_spawn_delay(_current_wave)
+	var rush_delay: float = maxf(0.05, base_delay * 0.5)
+	for i: int in _active_enemies:
+		if i > 0:
+			# Front-load spawns to hit the player quickly, then taper to base pacing.
+			var delay: float = i < 4 ? rush_delay * 0.5 : rush_delay
+			await get_tree().create_timer(delay).timeout
+		_spawn_single_enemy()
+
+
+func _spawn_attrition_wave() -> void:
+	var base_delay: float = _get_wave_spawn_delay(_current_wave)
+	for i: int in _active_enemies:
+		if i > 0:
+			# Add jitter to keep pressure steady but not uniform.
+			var variance: float = randf_range(-0.10, 0.30)
+			var delay: float = maxf(0.1, base_delay * (1.2 + variance))
+			await get_tree().create_timer(delay).timeout
+		_spawn_single_enemy()
+
+
+func _spawn_burst_wave() -> void:
+	var base_delay: float = _get_wave_spawn_delay(_current_wave)
+	var intra_burst_delay: float = maxf(0.05, base_delay * 0.35)
+	var burst_pause: float = maxf(base_delay * 2.2, 0.6)
+	var spawned: int = 0
+	while spawned < _active_enemies:
+		for i: int in BURST_GROUP_SIZE:
+			if spawned >= _active_enemies:
+				break
+			if i > 0:
+				await get_tree().create_timer(intra_burst_delay).timeout
+			_spawn_single_enemy()
+			spawned += 1
+		if spawned < _active_enemies:
+			await get_tree().create_timer(burst_pause).timeout
 
 
 func _spawn_single_enemy() -> void:
@@ -136,12 +195,12 @@ func _spawn_single_enemy() -> void:
 		_on_enemy_removed(false)
 		return
 
-	enemy.global_position = point.global_position
+	var active_players: Array[Node2D] = _get_active_players()
+	enemy.global_position = _get_safe_spawn_position(point.global_position, active_players)
 	# Apply wave-based difficulty scaling. move_speed and damage are guaranteed
 	# @export properties of EnemyBase (null was already rejected above).
 	enemy.move_speed *= _get_difficulty_multiplier(speed_scale_per_wave, _current_wave)
 	enemy.damage *= _get_difficulty_multiplier(damage_scale_per_wave, _current_wave)
-	var active_players: Array[Node2D] = _get_active_players()
 	if not active_players.is_empty():
 		enemy.set_target(active_players[randi() % active_players.size()])
 	elif _player != null:
@@ -246,6 +305,18 @@ func _get_active_players() -> Array[Node2D]:
 	)
 
 
+func _get_wave_data(index: int) -> WaveData:
+	if index < wave_data_list.size():
+		return wave_data_list[index]
+	return null
+
+
+func _get_wave_identity(wave_data: WaveData) -> StringName:
+	if wave_data != null and not String(wave_data.wave_identity).is_empty():
+		return wave_data.wave_identity
+	return IDENTITY_STANDARD
+
+
 func _select_spawn_point() -> Node2D:
 	if spawn_points.is_empty():
 		return null
@@ -253,15 +324,42 @@ func _select_spawn_point() -> Node2D:
 	if active_players.is_empty():
 		return spawn_points[randi() % spawn_points.size()]
 
+	var farthest: Node2D = null
+	var farthest_distance: float = -INF
 	for _attempt: int in spawn_retry_count:
 		var candidate: Node2D = spawn_points[randi() % spawn_points.size()]
-		if _is_far_from_all_players(candidate.global_position, active_players):
+		var distance: float = _distance_to_closest_player(candidate.global_position, active_players)
+		if distance > farthest_distance:
+			farthest_distance = distance
+			farthest = candidate
+		if distance >= min_spawn_distance_from_player:
 			return candidate
 
 	for candidate: Node2D in spawn_points:
-		if _is_far_from_all_players(candidate.global_position, active_players):
+		var distance: float = _distance_to_closest_player(candidate.global_position, active_players)
+		if distance > farthest_distance:
+			farthest_distance = distance
+			farthest = candidate
+		if distance >= min_spawn_distance_from_player:
 			return candidate
-	return null
+	return farthest
+
+
+func _get_safe_spawn_position(pos: Vector2, active_players: Array[Node2D]) -> Vector2:
+	if active_players.is_empty():
+		return pos
+	var safe_pos: Vector2 = pos
+	for p: Node2D in active_players:
+		if not is_instance_valid(p):
+			continue
+		var offset: Vector2 = safe_pos - p.global_position
+		var distance: float = offset.length()
+		if distance < min_spawn_distance_from_player:
+			var direction: Vector2 = offset.normalized()
+			if direction == Vector2.ZERO:
+				direction = Vector2.RIGHT
+			safe_pos = p.global_position + direction * min_spawn_distance_from_player
+	return safe_pos
 
 
 func _is_far_from_all_players(pos: Vector2, active_players: Array[Node2D]) -> bool:
@@ -269,6 +367,15 @@ func _is_far_from_all_players(pos: Vector2, active_players: Array[Node2D]) -> bo
 		if pos.distance_to(p.global_position) < min_spawn_distance_from_player:
 			return false
 	return true
+
+
+func _distance_to_closest_player(pos: Vector2, active_players: Array[Node2D]) -> float:
+	if active_players.is_empty():
+		return INF
+	var closest: float = INF
+	for p: Node2D in active_players:
+		closest = minf(closest, pos.distance_to(p.global_position))
+	return closest
 
 
 ## Returns a difficulty multiplier for a given [param scale_per_wave] and [param wave_index].

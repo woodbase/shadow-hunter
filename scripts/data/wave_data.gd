@@ -14,6 +14,8 @@ extends Resource
 
 @export var enemy_scene: PackedScene
 @export var enemy_scene_pool: Array[PackedScene] = []
+## Encounter identity controls pacing and composition behaviors in WaveSpawner.
+@export_enum("standard", "rush", "attrition", "burst") var wave_identity: StringName = "standard"
 
 ## Runtime telemetry — populated by the level controller after this wave is cleared.
 ## These values are per-run and are NOT persisted back to disk.
