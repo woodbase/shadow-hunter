@@ -2,7 +2,7 @@
 ##
 ## Verifies that the DamageOverlay is set immediately when damage lands,
 ## that it is not triggered during invulnerability frames, and that rapid
-## successive hits overwrite the pending timer (non-stacking).
+## successive hits overwrite the pending tween (non-stacking).
 ##
 ## Run standalone: create a scene with a Node root, attach this script.
 extends Node
@@ -99,15 +99,15 @@ func test_rapid_damage_overwrites_timer_reference() -> void:
 	var player: PlayerController = result[0]
 	var overlay: ColorRect = result[1]
 
-	# Two hits in quick succession — each creates a new timer.
+	# Two hits in quick succession — each creates a new tween.
 	player.health_component.take_damage(10.0)
-	var first_timer: SceneTreeTimer = player._damage_feedback_timer
+	var first_tween: Tween = player._damage_tween
 
 	player.health_component.take_damage(10.0)
-	var second_timer: SceneTreeTimer = player._damage_feedback_timer
+	var second_tween: Tween = player._damage_tween
 
-	_assert(first_timer != second_timer,
-		"second hit stores a new timer, overwriting the first")
+	_assert(first_tween != second_tween,
+		"second hit stores a new tween, overwriting the first")
 	_assert(is_equal_approx(overlay.color.a, 0.5),
 		"overlay alpha is still 0.5 after rapid second hit")
 

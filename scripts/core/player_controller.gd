@@ -37,8 +37,9 @@ signal died
 var _weapon: BaseWeapon = null
 var _fire_cooldown: float = 0.0
 var _normalized_bounds: Rect2
+var _damage_feedback_hold: float = 0.15
 var _damage_feedback_duration: float = 0.2
-var _damage_feedback_timer: SceneTreeTimer = null
+var _damage_tween: Tween = null
 var _damage_overlay: ColorRect = null
 var _viewport_half_size: Vector2 = Vector2.ZERO
 
@@ -142,16 +143,18 @@ func add_xp(amount: int) -> void:
 	xp_component.add_xp(amount)
 
 
-## Briefly flash the damage overlay red to give visual hit feedback.
+## Briefly flash the damage overlay red to give visual hit feedback,
+## then smoothly fade it out.  Rapid successive hits restart the animation
+## without stacking.
 func play_damage_feedback() -> void:
 	if _damage_overlay == null:
 		return
+	if _damage_tween != null:
+		_damage_tween.kill()
 	_damage_overlay.color = Color(1.0, 0.0, 0.0, 0.5)
-	var timer := get_tree().create_timer(_damage_feedback_duration)
-	_damage_feedback_timer = timer
-	await timer.timeout
-	if _damage_feedback_timer == timer and is_instance_valid(_damage_overlay):
-		_damage_overlay.color = Color(1.0, 0.0, 0.0, 0.0)
+	_damage_tween = create_tween()
+	_damage_tween.tween_interval(_damage_feedback_hold)
+	_damage_tween.tween_property(_damage_overlay, "color:a", 0.0, _damage_feedback_duration)
 
 
 ## Assign a new weapon at runtime.
@@ -161,9 +164,11 @@ func set_weapon(weapon: BaseWeapon) -> void:
 
 func _on_health_died() -> void:
 	set_physics_process(false)
+	if _damage_tween != null:
+		_damage_tween.kill()
+		_damage_tween = null
 	if is_instance_valid(_damage_overlay):
 		_damage_overlay.color = Color(1.0, 0.0, 0.0, 0.0)
-	_damage_feedback_timer = null
 	died.emit()
 
 
