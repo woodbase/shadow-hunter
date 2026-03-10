@@ -123,9 +123,9 @@ func _on_any_player_died() -> void:
 		_run_finished = true
 		GameStateManager.change_state(GameStateManager.State.GAME_OVER)
 		hud.show_final_results(_score, _current_wave)
+		AudioManager.play_ui("game_over")
+		AudioManager.stop_music()
 		print("GAME OVER")
-	# Start combat music and station ambience
-	AudioManager.play_music("combat_theme")
 
 
 func _on_player_died() -> void:
