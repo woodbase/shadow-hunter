@@ -237,14 +237,27 @@ func _on_player_damaged(amount: float) -> void:
 
 
 func _log_wave_telemetry(wave_number: int) -> void:
-	if not debug_telemetry_enabled:
-		return
 	var elapsed_sec: float = maxf(0.001, float(Time.get_ticks_msec() - _wave_started_at_ms) / 1000.0)
 	var kills_per_minute: float = float(_wave_kills) * 60.0 / elapsed_sec
+
+	# Write telemetry back onto the WaveData resource for this wave so it is
+	# accessible for inspection and future balance tuning.
+	var wave_idx: int = wave_number - 1
+	if wave_idx < wave_spawner.wave_data_list.size():
+		var wd: WaveData = wave_spawner.wave_data_list[wave_idx]
+		wd.clear_time_sec = elapsed_sec
+		wd.damage_taken = _wave_damage_taken
+		wd.kills_per_minute = kills_per_minute
+
+	# Always emit the per-wave telemetry line so data is captured in every run.
 	print(
 		"[Telemetry %s] Wave %d | clear_time=%.2fs | damage_dealt=%.1f | damage_taken=%.1f | kills=%d | kills_per_min=%.2f"
 		% [_run_id, wave_number, elapsed_sec, _wave_damage_dealt, _wave_damage_taken, _wave_kills, kills_per_minute]
 	)
+
+	# Balance hints are extra detail; only shown when debug_telemetry_enabled is true.
+	if not debug_telemetry_enabled:
+		return
 	var notes: Array[String] = []
 	if elapsed_sec < TELEMETRY_TARGET_CLEAR_TIME_MIN:
 		notes.append("too_fast")

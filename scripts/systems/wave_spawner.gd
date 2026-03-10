@@ -31,15 +31,15 @@ signal enemy_killed
 @export var min_spawn_distance_from_player: float = 220.0
 @export var spawn_retry_count: int = 8
 
-## Fraction by which enemy max-health grows per wave (e.g. 0.15 = +15 % per wave).
+## Fraction by which enemy max-health grows per wave (e.g. 0.12 = +12 % per wave).
 ## Multiplier is [code]1.0 + wave_index * health_scale_per_wave[/code].
-@export var health_scale_per_wave: float = 0.15
-## Fraction by which enemy move speed grows per wave (e.g. 0.10 = +10 % per wave).
+@export var health_scale_per_wave: float = 0.12
+## Fraction by which enemy move speed grows per wave (e.g. 0.08 = +8 % per wave).
 ## Multiplier is [code]1.0 + wave_index * speed_scale_per_wave[/code].
-@export var speed_scale_per_wave: float = 0.10
-## Fraction by which enemy attack damage grows per wave (e.g. 0.10 = +10 % per wave).
+@export var speed_scale_per_wave: float = 0.08
+## Fraction by which enemy attack damage grows per wave (e.g. 0.08 = +8 % per wave).
 ## Multiplier is [code]1.0 + wave_index * damage_scale_per_wave[/code].
-@export var damage_scale_per_wave: float = 0.10
+@export var damage_scale_per_wave: float = 0.08
 ## Fraction by which procedural enemy count grows per wave (e.g. 0.20 = +20 % per wave).
 ## Has no effect when [member wave_data_list] is set.
 ## Multiplier is [code]1.0 + wave_index * count_scale_per_wave[/code].
