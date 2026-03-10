@@ -7,7 +7,8 @@
 [resource]
 script = ExtResource("1_wave")
 wave_name = "Attrition Line"
-enemy_count = 10
-spawn_delay = 0.28
+enemy_count = 9
+spawn_delay = 0.5
 enemy_scene = ExtResource("2_enemy")
 enemy_scene_pool = Array[PackedScene]([ExtResource("2_enemy"), ExtResource("3_enemy_brute")])
+wave_identity = &"attrition"

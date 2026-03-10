@@ -14,6 +14,8 @@ func _run_all() -> void:
 	test_wave_data_overrides_total_waves()
 	test_wave_enemy_count_negative_is_clamped()
 	test_spawn_point_respects_min_distance()
+	test_spawn_position_is_pushed_outside_safety_radius()
+	test_spawn_point_uses_farthest_when_all_are_near()
 	test_missing_spawn_point_returns_null()
 	test_wave_enemy_scene_override_uses_wave_data_scene()
 	test_wave_enemy_scene_missing_override_falls_back()
@@ -30,6 +32,8 @@ func _run_all() -> void:
 	test_wave_data_telemetry_fields_default_to_zero()
 	test_wave_data_telemetry_fields_are_writable()
 	test_wave_data_tuned_difficulty_scales()
+	test_wave_identity_defaults_to_standard()
+	test_wave_identity_uses_wave_data_identity()
 
 
 func _assert(condition: bool, name: String) -> void:
@@ -78,6 +82,34 @@ func test_spawn_point_respects_min_distance() -> void:
 
 	var selected := spawner._select_spawn_point()
 	_assert(selected == far, "spawn selection returns a valid far point via fallback")
+
+
+func test_spawn_position_is_pushed_outside_safety_radius() -> void:
+	var spawner := WaveSpawner.new()
+	var player := Node2D.new()
+	player.global_position = Vector2.ZERO
+	spawner._players = [player]
+	spawner.min_spawn_distance_from_player = 150.0
+
+	var adjusted := spawner._get_safe_spawn_position(Vector2(10.0, 0.0), spawner._get_active_players())
+	_assert(adjusted.distance_to(player.global_position) >= 150.0, "spawn position is offset to satisfy safety radius")
+
+
+func test_spawn_point_uses_farthest_when_all_are_near() -> void:
+	var spawner := WaveSpawner.new()
+	var player := Node2D.new()
+	player.global_position = Vector2.ZERO
+	spawner._players = [player]
+	spawner.min_spawn_distance_from_player = 300.0
+
+	var very_near := Marker2D.new()
+	very_near.global_position = Vector2(40.0, 0.0)
+	var less_near := Marker2D.new()
+	less_near.global_position = Vector2(220.0, 0.0)
+	spawner.spawn_points = [very_near, less_near]
+
+	var selected := spawner._select_spawn_point()
+	_assert(selected == less_near, "when no point clears the safety radius, the farthest candidate is used")
 
 
 func test_missing_spawn_point_returns_null() -> void:
@@ -223,3 +255,18 @@ func test_wave_data_tuned_difficulty_scales() -> void:
 	var wave5_speed: float = spawner._get_difficulty_multiplier(spawner.speed_scale_per_wave, 4)
 	_assert(wave5_speed < 1.5, "wave-5 speed multiplier stays below 1.5x for fairness")
 	_assert(wave5_speed > 1.0, "wave-5 speed multiplier still escalates beyond 1.0x")
+
+
+func test_wave_identity_defaults_to_standard() -> void:
+	var spawner := WaveSpawner.new()
+	var wave := WaveData.new()
+	spawner.wave_data_list = [wave]
+	_assert(spawner._get_wave_identity(spawner.wave_data_list[0]) == &"standard", "wave identity defaults to standard when unset")
+
+
+func test_wave_identity_uses_wave_data_identity() -> void:
+	var spawner := WaveSpawner.new()
+	var wave := WaveData.new()
+	wave.wave_identity = &"rush"
+	spawner.wave_data_list = [wave]
+	_assert(spawner._get_wave_identity(spawner.wave_data_list[0]) == &"rush", "wave identity reads value from WaveData")

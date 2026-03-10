@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_wave")
 wave_name = "Flank Pressure"
-enemy_count = 7
-spawn_delay = 0.45
+enemy_count = 8
+spawn_delay = 0.32
 enemy_scene_pool = Array[PackedScene]([ExtResource("2_enemy_base"), ExtResource("3_enemy_striker")])
+wave_identity = &"burst"
