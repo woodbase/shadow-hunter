@@ -140,8 +140,8 @@ jobs:
             // ════════════════════════════════════════════════════════════════
             // 2. MILESTONES  (hardcoded from docs/project-plan/PROJECT_PLAN.md)
             // ════════════════════════════════════════════════════════════════
-            const prototypeMs = await ensureMilestone('Prototype',      'Playable gameplay loop');
-            await ensureMilestone('Vertical Slice', 'Polished single level');
+            const prototypeMs     = await ensureMilestone('Prototype',      'Playable gameplay loop');
+            const verticalSliceMs = await ensureMilestone('Vertical Slice', 'Polished single level');
             await ensureMilestone('Demo',           'Content-complete demo');
 
             // ════════════════════════════════════════════════════════════════
@@ -207,6 +207,72 @@ jobs:
                 labels: ['system:progression', 'sprint:4'],
                 milestone: prototypeMs,
                 body: `## Description\n\nPlayer levels up when XP threshold is reached.\n\n## Acceptance Criteria\n\n- [ ] XP bar\n- [ ] Level increases\n- [ ] Level-up trigger\n\n## Story Points\n\n5`,
+              },
+              // ── Vertical Slice – Combat Feel ───────────────────────────────
+              {
+                title: 'Combat Feedback — Enemy Hit Flash',
+                labels: ['system:combat', 'sprint:5'],
+                milestone: verticalSliceMs,
+                body: `## Description\n\nEnemies briefly flash bright when hit so players can immediately perceive that damage landed.\n\n## Acceptance Criteria\n\n- [ ] Enemy sprite flashes a bright colour for a short duration on each hit\n- [ ] Flash does not play while the enemy is already dying\n- [ ] Configurable flash colour and duration\n\n## Story Points\n\n2`,
+              },
+              {
+                title: 'Combat Feedback — Player Damage Indicator',
+                labels: ['system:combat', 'sprint:5'],
+                milestone: verticalSliceMs,
+                body: `## Description\n\nA screen overlay briefly appears whenever the player takes damage, giving immediate visual confirmation.\n\n## Acceptance Criteria\n\n- [ ] Semi-transparent red overlay appears on the screen edge when player takes damage\n- [ ] Overlay fades out automatically after a short duration\n- [ ] Overlay does not activate when damage is blocked by invulnerability frames\n- [ ] Rapid successive hits overwrite the previous timer without stacking\n\n## Story Points\n\n2`,
+              },
+              {
+                title: 'Combat Feedback — Projectile Tracer and Muzzle Effect',
+                labels: ['system:combat', 'sprint:5'],
+                milestone: verticalSliceMs,
+                body: `## Description\n\nProjectiles render a short motion trail and a brief flash is spawned at the impact point so hits feel punchy.\n\n## Acceptance Criteria\n\n- [ ] Each projectile renders a Line2D motion tracer behind it\n- [ ] An ImpactEffect node is spawned at the collision point on hit\n- [ ] Effect self-destructs after its animation completes (no node leaks)\n\n## Story Points\n\n3`,
+              },
+              {
+                title: 'Combat Feedback — Enemy Death Animation',
+                labels: ['system:combat', 'sprint:5'],
+                milestone: verticalSliceMs,
+                body: `## Description\n\nEnemies fade out visually when killed rather than disappearing instantly, giving clear death confirmation.\n\n## Acceptance Criteria\n\n- [ ] Enemy body tweens to zero alpha over a short duration after death\n- [ ] Collision and movement stop immediately at death before the visual fade finishes\n- [ ] XP and scoring signals fire before the visual fade begins\n\n## Story Points\n\n2`,
+              },
+              // ── Vertical Slice – HUD ───────────────────────────────────────
+              {
+                title: 'HUD — Wave Progress Clarity',
+                labels: ['system:ui', 'sprint:5'],
+                milestone: verticalSliceMs,
+                body: `## Description\n\nThe HUD clearly communicates which wave the player is on and what to expect next.\n\n## Acceptance Criteria\n\n- [ ] Wave label shows current and total waves (e.g. "Wave 02 / 05" — exact formatting is illustrative)\n- [ ] A banner appears at the start of each wave announcing the wave number\n- [ ] A brief summary banner displays after each wave is cleared, showing wave number and score\n\n## Story Points\n\n3`,
+              },
+              {
+                title: 'HUD — End Screen with Clear CTA',
+                labels: ['system:ui', 'sprint:5'],
+                milestone: verticalSliceMs,
+                body: `## Description\n\nThe game-over and run-complete screen provides the player's final stats and clear next-action buttons.\n\n## Acceptance Criteria\n\n- [ ] End screen shows final wave reached and score\n- [ ] Retry and Main Menu buttons are visible and focussed for immediate input\n- [ ] Screen is not shown while a wave is in progress\n\n## Story Points\n\n2`,
+              },
+              // ── Vertical Slice – Balance and Difficulty ────────────────────
+              {
+                title: 'Balance Pass with Wave Telemetry',
+                labels: ['system:spawn', 'sprint:5'],
+                milestone: verticalSliceMs,
+                body: `## Description\n\nUse the existing wave telemetry fields to gather data and tune difficulty parameters so the five-wave arc feels escalating but fair.\n\n## Acceptance Criteria\n\n- [ ] WaveData telemetry fields (clear-time, damage taken, kills per minute) are actively logged per wave\n- [ ] Wave parameters (enemy_count, spawn_delay, health/speed/damage scale) are tuned using logged data\n- [ ] At least 70% of internal runs complete all waves without the player quitting early\n\n## Story Points\n\n3`,
+              },
+              // ── Vertical Slice – Wave Content ──────────────────────────────
+              {
+                title: 'Wave Content Variants — Mixed Enemy Spawns',
+                labels: ['system:spawn', 'sprint:5'],
+                milestone: verticalSliceMs,
+                body: `## Description\n\nGive each wave a distinct encounter identity by using the enemy_scene_pool to introduce mixed enemy compositions.\n\n## Acceptance Criteria\n\n- [ ] At least three wave identity types defined (e.g. rush, attrition, burst)\n- [ ] Waves beyond wave 2 use enemy_scene_pool for mixed enemy type spawning\n- [ ] Spawn safety radius prevents enemies from appearing directly on top of the player\n- [ ] Waves feel noticeably different in pacing, not just in raw numbers\n\n## Story Points\n\n5`,
+              },
+              // ── Vertical Slice – State and Polish ─────────────────────────
+              {
+                title: 'Game State and Pause Polish',
+                labels: ['system:ui', 'sprint:5'],
+                milestone: verticalSliceMs,
+                body: `## Description\n\nAll game state transitions (pause, retry, menu) are consistent and free of input-doubling or leftover state.\n\n## Acceptance Criteria\n\n- [ ] Pause, retry, and main menu transitions complete cleanly without residual state\n- [ ] Input actions do not fire twice when changing scenes\n- [ ] A run seed or run ID is written to the log on each run start for reproducibility\n\n## Story Points\n\n3`,
+              },
+              // ── Vertical Slice – Test and Delivery Hygiene ────────────────
+              {
+                title: 'Wave Progression Tests and Pre-Merge Checklist',
+                labels: ['system:spawn', 'sprint:5'],
+                milestone: verticalSliceMs,
+                body: `## Description\n\nExpand automated test coverage for wave progression edge-cases and establish a standard pre-merge check routine.\n\n## Acceptance Criteria\n\n- [ ] Unit tests cover wave progression edge-cases (e.g. zero enemies, missing spawn points, pool selection)\n- [ ] A pre-merge checklist document exists in the repository\n- [ ] The checklist is runnable by any team member without ad-hoc steps\n\n## Story Points\n\n2`,
               },
             ];
 
