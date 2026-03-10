@@ -39,6 +39,7 @@ var _is_dying: bool = false
 
 
 func _ready() -> void:
+	add_to_group("enemies")
 	health_component.died.connect(_on_health_died)
 	health_component.damaged.connect(_on_health_damaged)
 	_init_hit_flash()
@@ -177,3 +178,11 @@ func _on_health_damaged(_amount: float) -> void:
 	if _is_dying:
 		return
 	play_hit_flash()
+
+
+## Show or hide this enemy based on whether it is within the player's light radius.
+## Called each frame by [LightSystem]. Has no effect while the enemy is dying.
+func set_in_light(in_light: bool) -> void:
+	if _is_dying or _body == null:
+		return
+	_body.visible = in_light
