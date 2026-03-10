@@ -176,6 +176,8 @@ func _on_all_waves_completed() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_echo():
+		return
 	if _run_finished and not _transitioning:
 		if event.is_action_pressed("fire") or event.is_action_pressed("ui_accept"):
 			_restarting = true
@@ -262,6 +264,7 @@ func _restart_run() -> void:
 	if _transitioning:
 		return
 	_transitioning = true
+	_clear_input_buffer()
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 
@@ -270,6 +273,7 @@ func _go_to_next_level() -> void:
 	if _transitioning:
 		return
 	_transitioning = true
+	_clear_input_buffer()
 	get_tree().paused = false
 	GameStateManager.change_state(GameStateManager.State.PLAYING)
 	get_tree().change_scene_to_file(next_level_scene_path)
@@ -279,6 +283,7 @@ func _return_to_main_menu() -> void:
 	if _transitioning:
 		return
 	_transitioning = true
+	_clear_input_buffer()
 	get_tree().paused = false
 	GameStateManager.change_state(GameStateManager.State.MAIN_MENU)
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE_PATH)
@@ -309,3 +314,10 @@ func _init_run_identity() -> void:
 	_run_id = "run-%d" % _run_seed
 	seed(_run_seed)
 	print("[Run] id=%s seed=%d" % [_run_id, _run_seed])
+
+
+func _clear_input_buffer() -> void:
+	Input.flush_buffered_events()
+	Input.action_release("fire")
+	Input.action_release("ui_accept")
+	Input.action_release("pause")

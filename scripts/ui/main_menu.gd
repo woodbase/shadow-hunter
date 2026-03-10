@@ -69,6 +69,8 @@ func _update_player_count_buttons() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_echo():
+		return
 	if event.is_action_pressed("fire") or event.is_action_pressed("ui_accept"):
 		_on_start_pressed()
 		get_viewport().set_input_as_handled()
@@ -76,9 +78,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_start_pressed() -> void:
 	AudioManager.play_ui("button_confirm")
+	_clear_input_buffer()
 	GameStateManager.change_state(GameStateManager.State.PLAYING)
 	get_tree().change_scene_to_file("res://scenes/levels/test_level.tscn")
 
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
+
+
+func _clear_input_buffer() -> void:
+	Input.flush_buffered_events()
+	Input.action_release("fire")
+	Input.action_release("ui_accept")
+	Input.action_release("pause")
