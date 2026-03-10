@@ -2,6 +2,7 @@
 extends Node2D
 
 const AudioLibrary = preload("res://scripts/systems/audio_library.gd")
+const XP_ORB_SCENE: PackedScene = preload("res://scenes/player/xp_orb.tscn")
 
 @onready var player: PlayerController = $Player
 @onready var hud: HUD = $HUD
@@ -214,7 +215,19 @@ func _on_enemy_spawned(enemy: EnemyBase) -> void:
 		health.died.connect(func() -> void:
 			AudioManager.play_sfx("enemy_death", enemy.global_position)
 		)
-	enemy.xp_dropped.connect(player.add_xp)
+	enemy.xp_dropped.connect(func(amount: int) -> void:
+		_spawn_xp_orb(enemy.global_position, amount)
+	)
+
+
+func _spawn_xp_orb(pos: Vector2, amount: int) -> void:
+	var orb: XPOrb = XP_ORB_SCENE.instantiate() as XPOrb
+	if orb == null:
+		push_error("test_level: failed to instantiate XP_ORB_SCENE as XPOrb.")
+		return
+	orb.xp_amount = amount
+	orb.global_position = pos
+	add_child(orb)
 
 
 func _on_player_damaged(amount: float) -> void:
