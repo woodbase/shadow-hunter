@@ -26,6 +26,9 @@ func _run_all() -> void:
 	test_impact_effect_duration_default()
 	test_impact_effect_starts_fully_opaque()
 	test_despawn_guard_prevents_double_processing()
+	test_enemy_projectile_has_tracer_node()
+	test_enemy_projectile_tracer_tail_length_matches_constant()
+	test_enemy_projectile_has_impact_effect_scene()
 
 
 # ---------------------------------------------------------------------------
@@ -161,4 +164,41 @@ func test_despawn_guard_prevents_double_processing() -> void:
 	proj._despawn()
 	_assert(proj._is_despawning, "despawn guard is set after _despawn() is called")
 	# No queue_free needed — _despawn already called it.
+
+
+# ---------------------------------------------------------------------------
+# Enemy projectile tracer and impact effect tests
+# ---------------------------------------------------------------------------
+
+func test_enemy_projectile_has_tracer_node() -> void:
+	# Each projectile (including enemy ones) must have a Tracer Line2D child.
+	var scene: PackedScene = load("res://scenes/weapons/enemy_projectile.tscn")
+	var proj: EnemyProjectile = scene.instantiate() as EnemyProjectile
+	add_child(proj)
+	var tracer: Line2D = proj.get_node_or_null("Tracer") as Line2D
+	_assert(tracer != null, "enemy projectile has a Tracer Line2D child node")
+	proj.queue_free()
+
+
+func test_enemy_projectile_tracer_tail_length_matches_constant() -> void:
+	# The enemy projectile's tracer tail must use the same TRACER_LENGTH constant.
+	var scene: PackedScene = load("res://scenes/weapons/enemy_projectile.tscn")
+	var proj: EnemyProjectile = scene.instantiate() as EnemyProjectile
+	proj.direction = Vector2.RIGHT
+	add_child(proj)
+	var tracer: Line2D = proj.get_node_or_null("Tracer") as Line2D
+	var tail: Vector2 = tracer.get_point_position(0)
+	_assert(_is_approx_equal_v(tail, Vector2(-Projectile.TRACER_LENGTH, 0.0)),
+		"enemy projectile tracer tail length matches TRACER_LENGTH")
+	proj.queue_free()
+
+
+func test_enemy_projectile_has_impact_effect_scene() -> void:
+	# Enemy projectiles must have impact_effect_scene set so hits spawn an effect.
+	var scene: PackedScene = load("res://scenes/weapons/enemy_projectile.tscn")
+	var proj: EnemyProjectile = scene.instantiate() as EnemyProjectile
+	add_child(proj)
+	_assert(proj.impact_effect_scene != null,
+		"enemy projectile has impact_effect_scene assigned")
+	proj.queue_free()
 
