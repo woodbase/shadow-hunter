@@ -23,6 +23,10 @@ func _run_all() -> void:
 	test_xp_dropped_signal_emitted_on_death()
 	test_xp_dropped_carries_correct_reward()
 	test_xp_dropped_not_emitted_on_non_lethal_damage()
+	test_died_signal_emitted_on_death()
+	test_death_sets_dying_flag()
+	test_death_stops_movement_immediately()
+	test_death_disables_collision_immediately()
 
 
 func _assert(condition: bool, name: String) -> void:
@@ -182,3 +186,38 @@ func test_xp_dropped_not_emitted_on_non_lethal_damage() -> void:
 	enemy.xp_dropped.connect(func(_amount: int) -> void: dropped = true)
 	enemy.health_component.take_damage(1.0)
 	_assert(not dropped, "xp_dropped not emitted on non-lethal damage")
+
+
+## Acceptance criteria: died signal fires before the visual fade begins.
+func test_died_signal_emitted_on_death() -> void:
+	var enemy := _make_enemy()
+	var fired := false
+	enemy.died.connect(func() -> void: fired = true)
+	enemy.health_component.take_damage(enemy.health_component.max_health)
+	_assert(fired, "died signal is emitted when enemy health reaches zero")
+
+
+## Acceptance criteria: _is_dying flag is set on death, which initiates the fade
+## and prevents further state changes or duplicate death processing.
+func test_death_sets_dying_flag() -> void:
+	var enemy := _make_enemy()
+	_assert(not enemy._is_dying, "enemy does not start in dying state")
+	enemy.health_component.take_damage(enemy.health_component.max_health)
+	_assert(enemy._is_dying, "dying flag is set when enemy health reaches zero")
+
+
+## Acceptance criteria: movement stops immediately at death before the visual fade finishes.
+func test_death_stops_movement_immediately() -> void:
+	var enemy := _make_enemy()
+	enemy.velocity = Vector2(100.0, 0.0)
+	enemy.health_component.take_damage(enemy.health_component.max_health)
+	_assert(enemy.velocity == Vector2.ZERO, "velocity is zeroed immediately on death")
+
+
+## Acceptance criteria: collision stops immediately at death before the visual fade finishes.
+func test_death_disables_collision_immediately() -> void:
+	var enemy := _make_enemy()
+	enemy.health_component.take_damage(enemy.health_component.max_health)
+	_assert(enemy._collision_shape.disabled, "collision shape is disabled immediately on death")
+	_assert(enemy.collision_layer == 0, "collision layer is cleared immediately on death")
+	_assert(enemy.collision_mask == 0, "collision mask is cleared immediately on death")
