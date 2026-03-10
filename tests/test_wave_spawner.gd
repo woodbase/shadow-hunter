@@ -27,6 +27,9 @@ func _run_all() -> void:
 	test_difficulty_multiplier_scales_linearly()
 	test_procedural_count_scales_with_difficulty()
 	test_data_driven_count_ignores_difficulty_scale()
+	test_wave_data_telemetry_fields_default_to_zero()
+	test_wave_data_telemetry_fields_are_writable()
+	test_wave_data_tuned_difficulty_scales()
 
 
 func _assert(condition: bool, name: String) -> void:
@@ -189,3 +192,34 @@ func test_data_driven_count_ignores_difficulty_scale() -> void:
 	var wave := _make_wave(6, 0.3)
 	spawner.wave_data_list = [wave]
 	_assert(spawner._get_wave_enemy_count(0) == 6, "data-driven enemy count is used as-is and ignores count_scale_per_wave")
+
+
+func test_wave_data_telemetry_fields_default_to_zero() -> void:
+	var wave := WaveData.new()
+	_assert(is_zero_approx(wave.clear_time_sec), "WaveData.clear_time_sec defaults to 0.0")
+	_assert(is_zero_approx(wave.damage_taken), "WaveData.damage_taken defaults to 0.0")
+	_assert(is_zero_approx(wave.kills_per_minute), "WaveData.kills_per_minute defaults to 0.0")
+
+
+func test_wave_data_telemetry_fields_are_writable() -> void:
+	var wave := WaveData.new()
+	wave.clear_time_sec = 25.5
+	wave.damage_taken = 18.3
+	wave.kills_per_minute = 22.0
+	_assert(is_equal_approx(wave.clear_time_sec, 25.5), "WaveData.clear_time_sec is writable")
+	_assert(is_equal_approx(wave.damage_taken, 18.3), "WaveData.damage_taken is writable")
+	_assert(is_equal_approx(wave.kills_per_minute, 22.0), "WaveData.kills_per_minute is writable")
+
+
+func test_wave_data_tuned_difficulty_scales() -> void:
+	# Verify that the tuned default scale values produce multipliers within a
+	# fair escalation range across all five waves.
+	var spawner := WaveSpawner.new()
+	# health_scale_per_wave default is 0.12 → wave 5 (index 4) should be 1.48x
+	var wave5_health: float = spawner._get_difficulty_multiplier(spawner.health_scale_per_wave, 4)
+	_assert(wave5_health < 1.6, "wave-5 health multiplier stays below 1.6x for fairness")
+	_assert(wave5_health > 1.0, "wave-5 health multiplier still escalates beyond 1.0x")
+	# speed_scale_per_wave default is 0.08 → wave 5 should be 1.32x
+	var wave5_speed: float = spawner._get_difficulty_multiplier(spawner.speed_scale_per_wave, 4)
+	_assert(wave5_speed < 1.5, "wave-5 speed multiplier stays below 1.5x for fairness")
+	_assert(wave5_speed > 1.0, "wave-5 speed multiplier still escalates beyond 1.0x")
