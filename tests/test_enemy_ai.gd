@@ -17,6 +17,9 @@ func _run_all() -> void:
 	test_auto_detects_player_group_and_chases()
 	test_leaving_detection_range_returns_to_idle()
 	test_hit_flash_sets_and_resets_modulate()
+	test_hit_flash_skipped_while_dying()
+	test_hit_flash_uses_custom_color()
+	test_hit_flash_uses_custom_duration()
 	test_xp_dropped_signal_emitted_on_death()
 	test_xp_dropped_carries_correct_reward()
 	test_xp_dropped_not_emitted_on_non_lethal_damage()
@@ -121,10 +124,39 @@ func test_hit_flash_sets_and_resets_modulate() -> void:
 
 	enemy.health_component.take_damage(5.0)
 
-	_assert(body.modulate == enemy._flash_color, "hit flash applies flash color on damage")
+	_assert(body.modulate == enemy.flash_color, "hit flash applies flash color on damage")
 
 	enemy._on_hit_flash_timeout()
 	_assert(body.modulate == base_color, "hit flash timeout restores base modulate")
+
+
+func test_hit_flash_skipped_while_dying() -> void:
+	var enemy := _make_enemy()
+	var body := enemy.get_node("Body") as CanvasItem
+	var base_color: Color = body.modulate
+	enemy._is_dying = true
+	enemy.health_component.take_damage(5.0)
+	_assert(body.modulate == base_color, "hit flash is not applied while enemy is dying")
+
+
+func test_hit_flash_uses_custom_color() -> void:
+	var enemy := _make_enemy()
+	var custom_color := Color(1.0, 0.0, 0.0, 1.0)
+	enemy.flash_color = custom_color
+	var body := enemy.get_node("Body") as CanvasItem
+	enemy.health_component.take_damage(5.0)
+	_assert(body.modulate == custom_color, "hit flash uses the configured flash_color")
+
+
+func test_hit_flash_uses_custom_duration() -> void:
+	var scene: PackedScene = load("res://scenes/enemies/enemy_base.tscn")
+	var enemy := scene.instantiate() as EnemyBase
+	enemy.flash_duration = 0.5
+	add_child(enemy)
+	_assert(
+		absf(enemy._hit_flash_timer.wait_time - 0.5) < 0.001,
+		"hit flash timer uses the configured flash_duration"
+	)
 
 
 func test_xp_dropped_signal_emitted_on_death() -> void:

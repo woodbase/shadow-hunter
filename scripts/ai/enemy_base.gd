@@ -24,6 +24,10 @@ signal state_changed(new_state: State, old_state: State)
 @export var xp_reward: int = 10
 @export var projectile_scene: PackedScene
 @export var projectile_speed: float = 350.0
+## Colour applied to the enemy sprite when it is hit.
+@export var flash_color: Color = Color(1.8, 1.8, 1.8, 1.0)
+## How long (in seconds) the hit flash colour is shown.
+@export var flash_duration: float = 0.1
 
 @onready var health_component: HealthComponent = $HealthComponent
 @onready var _body: CanvasItem = $Body
@@ -34,7 +38,6 @@ var _target: Node2D = null
 var _attack_timer: float = 0.0
 var _hit_flash_timer: Timer
 var _base_modulate: Color = Color.WHITE
-var _flash_color: Color = Color(1.8, 1.8, 1.8, 1.0)
 var _is_dying: bool = false
 
 
@@ -156,7 +159,7 @@ func _on_health_died() -> void:
 func play_hit_flash() -> void:
 	if _body == null or _hit_flash_timer == null:
 		return
-	_body.modulate = _flash_color
+	_body.modulate = flash_color
 	_hit_flash_timer.start()
 
 
@@ -164,7 +167,7 @@ func _init_hit_flash() -> void:
 	_base_modulate = _body.modulate
 	_hit_flash_timer = Timer.new()
 	_hit_flash_timer.one_shot = true
-	_hit_flash_timer.wait_time = 0.1
+	_hit_flash_timer.wait_time = flash_duration
 	_hit_flash_timer.timeout.connect(_on_hit_flash_timeout)
 	add_child(_hit_flash_timer)
 
