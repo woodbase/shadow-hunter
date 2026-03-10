@@ -87,6 +87,11 @@ func _handle_movement(delta: float) -> void:
 		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
 
+## Rotate the player sprite to face the current aim direction.
+## For keyboard + mouse (device_id < 0) the player instantly snaps to face the
+## cursor using look_at(), providing 1:1 mouse tracking.
+## For gamepad (device_id >= 0) the right stick angle is used when the stick
+## exceeds the 0.2 deadzone threshold.
 func _handle_aim() -> void:
 	if device_id < 0:
 		look_at(get_global_mouse_position())

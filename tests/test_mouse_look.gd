@@ -1,10 +1,15 @@
-## Unit tests for the mouse look camera offset math helper.
+## Unit tests for the mouse look camera offset math helper and aim rotation.
 ##
 ## Validates that the pure offset formula used by PlayerController._handle_mouse_look()
 ## is correct for both horizontal and vertical mouse positions, that sensitivity
 ## scales the result proportionally, and that a centred cursor yields no offset.
 ## These tests exercise the local _compute_look_offset() helper only, not the
 ## PlayerController node or its _handle_mouse_look() method end-to-end.
+##
+## Also validates the rotation formula used by PlayerController._handle_aim()
+## (mirror of look_at's internal angle calculation) for all four cardinal
+## directions, a NE diagonal, the resulting fire direction vector, and the
+## exported mouse_look_sensitivity default range.
 ##
 ## Integration tests below also verify that _handle_mouse_look() applies the
 ## computed offset to Camera2D.offset and that the device_id >= 0 gate works.
@@ -30,6 +35,13 @@ func _run_all() -> void:
 	test_sensitivity_one_equals_raw_delta()
 	test_handle_mouse_look_sets_camera_offset()
 	test_handle_mouse_look_no_op_for_gamepad()
+	test_aim_angle_cursor_right_of_player()
+	test_aim_angle_cursor_below_player()
+	test_aim_angle_cursor_left_of_player()
+	test_aim_angle_cursor_above_player()
+	test_aim_angle_cursor_diagonal_ne()
+	test_aim_direction_vector_matches_rotation()
+	test_mouse_look_sensitivity_default_is_in_range()
 
 
 # ---------------------------------------------------------------------------
@@ -47,6 +59,10 @@ func _assert(condition: bool, name: String) -> void:
 
 func _is_approx_equal(a: Vector2, b: Vector2, tolerance: float = 0.001) -> bool:
 	return a.distance_to(b) < tolerance
+
+
+func _is_approx_equal_f(a: float, b: float, tolerance: float = 0.001) -> bool:
+	return abs(a - b) < tolerance
 
 
 ## Pure version of the offset formula used in PlayerController._handle_mouse_look().
@@ -160,3 +176,75 @@ func test_handle_mouse_look_no_op_for_gamepad() -> void:
 	_assert(_is_approx_equal(fake_cam.offset, initial_offset),
 		"device_id >= 0 gate prevents Camera2D.offset from being updated")
 	fake_cam.queue_free()
+
+
+# ---------------------------------------------------------------------------
+# Aim / rotation direction tests
+#
+# These tests validate the formula used by PlayerController._handle_aim()
+# when device_id < 0 (keyboard + mouse):
+#   look_at(get_global_mouse_position())
+# Internally, look_at() sets rotation = (target - global_position).angle().
+# The helper _compute_aim_angle() mirrors that formula for headless testing.
+# ---------------------------------------------------------------------------
+
+## Pure version of the rotation formula used by look_at() in _handle_aim().
+func _compute_aim_angle(player_pos: Vector2, cursor_pos: Vector2) -> float:
+	return (cursor_pos - player_pos).angle()
+
+
+## Cursor directly to the right of the player → rotation = 0 rad.
+func test_aim_angle_cursor_right_of_player() -> void:
+	var angle := _compute_aim_angle(Vector2.ZERO, Vector2(100.0, 0.0))
+	_assert(_is_approx_equal_f(angle, 0.0),
+		"cursor to the right produces a rotation of 0 rad (east)")
+
+
+## Cursor directly below the player → rotation = PI/2 rad (Godot Y-down).
+func test_aim_angle_cursor_below_player() -> void:
+	var angle := _compute_aim_angle(Vector2.ZERO, Vector2(0.0, 100.0))
+	_assert(_is_approx_equal_f(angle, PI / 2.0),
+		"cursor below produces a rotation of PI/2 rad (south)")
+
+
+## Cursor directly to the left of the player → rotation = PI rad (or -PI).
+func test_aim_angle_cursor_left_of_player() -> void:
+	var angle := _compute_aim_angle(Vector2.ZERO, Vector2(-100.0, 0.0))
+	_assert(_is_approx_equal_f(abs(angle), PI),
+		"cursor to the left produces a rotation of PI rad (west)")
+
+
+## Cursor directly above the player → rotation = -PI/2 rad.
+func test_aim_angle_cursor_above_player() -> void:
+	var angle := _compute_aim_angle(Vector2.ZERO, Vector2(0.0, -100.0))
+	_assert(_is_approx_equal_f(angle, -PI / 2.0),
+		"cursor above produces a rotation of -PI/2 rad (north)")
+
+
+## Cursor to the upper-right (NE diagonal) → rotation = -PI/4 rad.
+func test_aim_angle_cursor_diagonal_ne() -> void:
+	var angle := _compute_aim_angle(Vector2.ZERO, Vector2(100.0, -100.0))
+	_assert(_is_approx_equal_f(angle, -PI / 4.0),
+		"cursor upper-right produces a rotation of -PI/4 rad (north-east diagonal)")
+
+
+## The fired direction vector (Vector2.RIGHT.rotated(rotation)) matches the
+## unit vector from player to cursor. This mirrors _fire() in PlayerController.
+func test_aim_direction_vector_matches_rotation() -> void:
+	var player_pos := Vector2(50.0, 80.0)
+	var cursor_pos := Vector2(150.0, 80.0)  # cursor to the right
+	var rotation := _compute_aim_angle(player_pos, cursor_pos)
+	var fire_dir := Vector2.RIGHT.rotated(rotation)
+	var expected_dir := (cursor_pos - player_pos).normalized()
+	_assert(_is_approx_equal(fire_dir, expected_dir),
+		"fired direction vector matches the normalised player→cursor unit vector")
+
+
+## mouse_look_sensitivity default and clamped range: verify the default value
+## exported by PlayerController is within [0.0, 1.0].
+func test_mouse_look_sensitivity_default_is_in_range() -> void:
+	var pc := PlayerController.new()
+	var s := pc.mouse_look_sensitivity
+	_assert(s >= 0.0 and s <= 1.0,
+		"mouse_look_sensitivity default (%s) is within [0.0, 1.0]" % str(s))
+	pc.free()
