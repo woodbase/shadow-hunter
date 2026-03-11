@@ -20,11 +20,14 @@ func _run_all() -> void:
 	test_wave_enemy_scene_override_uses_wave_data_scene()
 	test_wave_enemy_scene_missing_override_falls_back()
 	test_wave_enemy_scene_pool_selects_from_pool()
+	test_pool_with_all_null_entries_falls_back_to_enemy_scene()
 	test_get_total_waves_public_accessor()
 	test_get_total_waves_falls_back_to_total_waves()
 	test_transitioning_guard_starts_false()
 	test_start_wave_guard_clears_starting_flag()
 	test_enemy_removed_advances_single_wave_step()
+	test_zero_enemy_wave_advances_immediately()
+	test_wave_completed_signal_fires_for_zero_enemy_wave()
 	test_difficulty_multiplier_at_wave_zero_is_1()
 	test_difficulty_multiplier_scales_linearly()
 	test_procedural_count_scales_with_difficulty()
@@ -270,3 +273,38 @@ func test_wave_identity_uses_wave_data_identity() -> void:
 	wave.wave_identity = &"rush"
 	spawner.wave_data_list = [wave]
 	_assert(spawner._get_wave_identity(spawner.wave_data_list[0]) == &"rush", "wave identity reads value from WaveData")
+
+
+func test_zero_enemy_wave_advances_immediately() -> void:
+	var spawner := WaveSpawner.new()
+	spawner.between_wave_delay = 0.0
+	spawner.wave_data_list = [_make_wave(0, 0.0), _make_wave(3, 0.2)]
+	spawner._wave_in_progress = false
+	spawner._starting_wave = false
+	spawner._current_wave = 0
+	spawner._start_wave(0)
+	_assert(spawner._current_wave == 1, "zero-enemy wave advances current_wave immediately without hanging")
+
+
+func test_wave_completed_signal_fires_for_zero_enemy_wave() -> void:
+	var spawner := WaveSpawner.new()
+	spawner.between_wave_delay = 0.0
+	spawner.wave_data_list = [_make_wave(0, 0.0), _make_wave(3, 0.2)]
+	spawner._wave_in_progress = false
+	spawner._starting_wave = false
+	spawner._current_wave = 0
+	var completed_wave_number: int = -1
+	spawner.wave_completed.connect(func(n: int) -> void: completed_wave_number = n)
+	spawner._start_wave(0)
+	_assert(completed_wave_number == 1, "wave_completed signal fires with wave number 1 for a zero-enemy wave")
+
+
+func test_pool_with_all_null_entries_falls_back_to_enemy_scene() -> void:
+	var spawner := WaveSpawner.new()
+	var fallback: PackedScene = load("res://scenes/enemies/enemy_base.tscn")
+	spawner.enemy_scene = fallback
+	var wave := _make_wave(3, 0.3)
+	wave.enemy_scene_pool = [null, null]
+	spawner.wave_data_list = [wave]
+	_assert(spawner._get_wave_enemy_scene(0) == fallback,
+		"all-null enemy_scene_pool entries fall back to enemy_scene")

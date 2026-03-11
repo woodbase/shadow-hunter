@@ -108,6 +108,10 @@ func _start_wave(index: int) -> void:
 	wave_started.emit(index + 1)
 	_active_enemies = _get_wave_enemy_count(index)
 	_starting_wave = false
+	if _active_enemies == 0:
+		# Empty wave: no enemies to spawn, so treat it as instantly cleared.
+		_on_enemy_removed(false)
+		return
 	_spawn_wave_enemies()
 
 
