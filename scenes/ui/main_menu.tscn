@@ -198,21 +198,21 @@ theme_override_constants/separation = 16
 
 [node name="TitleShadow" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
-text = "XENO BREACH // PROTOCOL"
+text = "SHADOW HUNTER"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.952941, 0.423529, 0.113725, 0.35)
 theme_override_font_sizes/font_size = 48
 
 [node name="Title" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
-text = "XENO BREACH // PROTOCOL"
+text = "SHADOW HUNTER"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.917647, 0.952941, 1, 1)
 theme_override_font_sizes/font_size = 48
 
 [node name="SubTitle" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
-text = "Industrial containment deployment // stay sharp"
+text = "darkness closes in // light is your only weapon"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.996078, 0.619608, 0.219608, 0.95)
 theme_override_font_sizes/font_size = 18
@@ -228,19 +228,19 @@ theme_override_constants/separation = 12
 
 [node name="StatusLabel" type="Label" parent="Center/Panel/Margin/VBox/StatusRow"]
 layout_mode = 2
-text = "BREACH CONDITION: CRITICAL"
+text = "DARKNESS: ABSOLUTE"
 theme_override_colors/font_color = Color(0.988235, 0.458824, 0.239216, 1)
 theme_override_font_sizes/font_size = 16
 
 [node name="SystemsLabel" type="Label" parent="Center/Panel/Margin/VBox/StatusRow"]
 layout_mode = 2
-text = "SYSTEMS: ONLINE // CHANNEL SEALED"
+text = "LANTERN: ONLINE // SHADOWS: STIRRING"
 theme_override_colors/font_color = Color(0.45098, 0.901961, 1, 0.95)
 theme_override_font_sizes/font_size = 16
 
 [node name="Briefing" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
-text = "Station Horizon-8 requests immediate response. Deploy, contain the breach, keep comms tight."
+text = "Something ancient stirs in the dark. Your lantern is your last defence. Survive as long as you can."
 horizontal_alignment = 1
 autowrap_mode = 1
 theme_override_colors/font_color = Color(0.847, 0.894, 0.929, 0.82)
@@ -252,7 +252,7 @@ theme_override_constants/separation = 10
 
 [node name="StartButton" type="Button" parent="Center/Panel/Margin/VBox/Buttons"]
 layout_mode = 2
-text = "INITIATE DEPLOYMENT"
+text = "ENTER THE DARK"
 theme_override_colors/font_color = Color(0.847, 0.894, 0.929, 1)
 theme_override_colors/font_hover_color = Color(0.745098, 0.952941, 1, 1)
 theme_override_colors/font_focus_color = Color(0.745098, 0.952941, 1, 1)
@@ -266,7 +266,7 @@ theme_override_styles/disabled = SubResource("6")
 
 [node name="QuitButton" type="Button" parent="Center/Panel/Margin/VBox/Buttons"]
 layout_mode = 2
-text = "ABORT / EXIT"
+text = "FLEE / EXIT"
 theme_override_colors/font_color = Color(0.847, 0.894, 0.929, 1)
 theme_override_colors/font_hover_color = Color(0.745098, 0.952941, 1, 1)
 theme_override_colors/font_focus_color = Color(0.745098, 0.952941, 1, 1)
