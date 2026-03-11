@@ -55,7 +55,7 @@ func fire(direction: Vector2) -> void:
 
 	var level: Node = get_tree().current_scene
 	if level != null:
-		level.add_child(projectile)
+		level.call_deferred("add_child", projectile)
 
 	_show_muzzle_flash()
 	_play_fire_audio()
