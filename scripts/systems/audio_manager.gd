@@ -2,9 +2,7 @@
 ##
 ## Access via the global [code]AudioManager[/code] singleton.
 ## Handles sound effect playback, background music, and audio bus management.
-
 extends Node
-class_name AudioManager
 
 ## Audio bus names
 const BUS_MASTER: String = "Master"
