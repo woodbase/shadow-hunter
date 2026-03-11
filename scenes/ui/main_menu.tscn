@@ -1,7 +1,7 @@
 [gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_main_menu"]
-[ext_resource type="Texture2D" path="res://logo.png" id="2_menu_bg"]
+[ext_resource type="Texture2D" uid="uid://cv1myucowvjks" path="res://shadow-hunter-icon.png" id="2_menu_bg"]
 
 [sub_resource type="Gradient" id="1"]
 offsets = PackedFloat32Array(0, 0.74, 1)
