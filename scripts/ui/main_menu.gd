@@ -14,8 +14,8 @@ var _player_count_buttons: Array[Button] = []
 func _ready() -> void:
 	GameStateManager.change_state(GameStateManager.State.MAIN_MENU)
 
-	title_label.text = "XENO BREACH // PROTOCOL"
-	subtitle_label.text = "Industrial containment deployment // stay sharp"
+	title_label.text = "SHADOW HUNTER"
+	subtitle_label.text = "darkness closes in // light is your only weapon"
 
 	start_button.pressed.connect(_on_start_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
@@ -42,7 +42,7 @@ func _setup_coop_selector() -> void:
 	row.add_theme_constant_override("separation", 8)
 
 	var label := Label.new()
-	label.text = "AGENTS:"
+	label.text = "SURVIVORS:"
 	label.add_theme_color_override("font_color", Color(0.847, 0.894, 0.929, 1))
 	label.add_theme_font_size_override("font_size", 16)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
