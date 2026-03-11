@@ -74,7 +74,7 @@ func _spawn_impact() -> void:
 	if effect == null:
 		return
 	effect.global_position = global_position
-	level.add_child(effect)
+	level.call_deferred("add_child", effect)
 
 
 func _despawn() -> void:

@@ -132,7 +132,7 @@ func _fire_projectile() -> void:
 	projectile.source_body = self
 	var level: Node = get_tree().current_scene
 	if level != null:
-		level.add_child(projectile)
+		level.call_deferred("add_child", projectile)
 
 
 func _on_health_died() -> void:
