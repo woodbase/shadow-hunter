@@ -68,13 +68,13 @@ func _setup_audio_players() -> void:
 	# Create music player (non-positional, looping)
 	music_player = AudioStreamPlayer.new()
 	music_player.bus = BUS_MUSIC
-	music_player.finished.connect(_on_music_finished)
+	music_player.finished.connect(_on_music_finished, Object.CONNECT_DEFERRED)
 	add_child(music_player)
 
 	# Create ambience player (non-positional, looping)
 	ambience_player = AudioStreamPlayer.new()
 	ambience_player.bus = BUS_AMBIENCE
-	ambience_player.finished.connect(_on_ambience_finished)
+	ambience_player.finished.connect(_on_ambience_finished, Object.CONNECT_DEFERRED)
 	add_child(ambience_player)
 
 
@@ -209,12 +209,12 @@ func stop_ambience() -> void:
 
 func _on_music_finished() -> void:
 	if music_loop_enabled and music_player.stream != null:
-		music_player.play()
+		music_player.call_deferred("play")
 
 
 func _on_ambience_finished() -> void:
 	if ambience_loop_enabled and ambience_player.stream != null:
-		ambience_player.play()
+		ambience_player.call_deferred("play")
 
 
 ## Set volume for a specific audio bus (0.0 to 1.0)
