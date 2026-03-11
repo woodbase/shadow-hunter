@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="Xeno Breach"
-config/description="Fast, aggressive twin-stick sci-fi shooter. Fight through breach-infested stations."
+config/name="Shadow Hunter"
+config/description="Fast, aggressive twin-stick sci-fi shooter. Hunt the shadows."
 config/version="0.1.0"
 run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
